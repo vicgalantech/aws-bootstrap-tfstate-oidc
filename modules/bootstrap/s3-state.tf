@@ -34,7 +34,7 @@ resource "aws_kms_key" "terraform_state" {
 }
 
 resource "aws_kms_alias" "terraform_state" {
-  name          = "alias/${var.company_name}-tfstate-${var.environment}"
+  name          = "alias/tfstate-${var.company_name}-${var.environment}"
   target_key_id = aws_kms_key.terraform_state.key_id
 }
 

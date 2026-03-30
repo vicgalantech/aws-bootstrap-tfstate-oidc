@@ -1,9 +1,9 @@
 locals {
   account_id              = data.aws_caller_identity.current.account_id
   region                  = data.aws_region.current.name
-  tfstate_bucket_name     = "${var.company_name}-tfstate-${var.environment}-${local.account_id}"
-  access_logs_bucket_name = "${var.company_name}-tfstate-${var.environment}-${local.account_id}-logs"
-  cloudtrail_bucket_name  = "${var.company_name}-cloudtrail-${var.environment}-${local.account_id}"
+  tfstate_bucket_name     = "tfstate-${var.company_name}-${var.environment}-${local.account_id}"
+  access_logs_bucket_name = "tfstate-${var.company_name}-${var.environment}-${local.account_id}-logs"
+  cloudtrail_bucket_name  = "cloudtrail-${var.company_name}-${var.environment}-${local.account_id}"
 
   # OIDC subject claim pattern
   oidc_subject_claim = var.github_repo != "*" ? [

@@ -35,7 +35,7 @@ Run these before taking any action:
 # 1. Confirm which environment is affected
 ENV="dev"   # or qa / prod
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-BUCKET="<company_name>-tfstate-${ENV}-${ACCOUNT_ID}"
+BUCKET="tfstate-<company_name>-${ENV}-${ACCOUNT_ID}"
 
 # 2. Check if bucket exists
 aws s3api head-bucket --bucket "${BUCKET}" 2>&1

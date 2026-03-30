@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "terraform_deployment" {
     effect  = "Allow"
     actions = ["s3:ListBucket"]
     resources = [
-      "arn:aws:s3:::${var.company_name}-tfstate-${var.environment}-*",
+      "arn:aws:s3:::tfstate-${var.company_name}-${var.environment}-*",
     ]
   }
 
@@ -65,8 +65,8 @@ data "aws_iam_policy_document" "terraform_deployment" {
       "s3:DeleteObjectVersion",
     ]
     resources = [
-      "arn:aws:s3:::${var.company_name}-tfstate-${var.environment}-*/bootstrap/*",
-      "arn:aws:s3:::${var.company_name}-tfstate-${var.environment}-*/live/*",
+      "arn:aws:s3:::tfstate-${var.company_name}-${var.environment}-*/bootstrap/*",
+      "arn:aws:s3:::tfstate-${var.company_name}-${var.environment}-*/live/*",
     ]
   }
 

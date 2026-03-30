@@ -158,7 +158,7 @@ remote_state {
   }
 
   config = {
-    bucket       = "${local.company_name}-tfstate-${local.env}-${local.account_id}"
+    bucket       = "tfstate-${local.company_name}-${local.env}-${local.account_id}"
     key          = "${path_relative_to_include()}/terraform.tfstate"
     region       = local.aws_region
     encrypt      = true

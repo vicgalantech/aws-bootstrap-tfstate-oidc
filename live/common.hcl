@@ -6,7 +6,7 @@
 
 locals {
   aws_region   = "eu-west-1"
-  company_name = "vicgalantech" # Prefix for S3 buckets: {company}-tfstate-{env}-{account}
+  company_name = "vicgalantech" # S3 bucket pattern: tfstate-{company}-{env}-{account}
   github_org   = "vicgalantech" # GitHub organisation name
   github_repo  = "*"               # "*" = all repos in org; or a specific repo name
 
