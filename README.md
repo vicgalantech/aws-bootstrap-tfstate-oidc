@@ -133,7 +133,8 @@ locals {
 Edit `live/dev/account.hcl`:
 ```hcl
 locals {
-  account_id  = "111111111111"  # Your AWS account ID
+  environment = "dev"
+  account_id  = get_aws_account_id() # Dynamically retrieved from AWS credentials
   aws_profile = "bootstrap-dev"
 }
 ```
@@ -141,11 +142,22 @@ locals {
 ### 2. First-Time Deploy
 
 ```bash
+# Before doing this step, be sure that you have created the AWS profile "bootstrap-dev". If you do not know how to do it check the step: Create Bootstrap IAM User
 export AWS_PROFILE=bootstrap-dev
 cd live/dev/bootstrap
 
 # Apply with local state (bucket doesn't exist yet)
-terragrunt apply --terragrunt-no-auto-init -backend=false
+# Step 1: Verify you're in the right account
+aws sts get-caller-identity
+ 
+# Step 2: Initialize WITHOUT remote backend (local state)
+terragrunt init -backend=false
+ 
+# Step 3: Review what will be created
+terragrunt plan
+ 
+# Step 4: Create the infrastructure
+terragrunt apply
 
 # Migrate state to S3
 terragrunt init -migrate-state
@@ -248,8 +260,8 @@ In the JSON editor, paste:
                 "s3:DeleteObject"
             ],
             "Resource": [
-                "arn:aws:s3:::*-tfstate-*",
-                "arn:aws:s3:::*-tfstate-*/*"
+                "arn:aws:s3:::tfstate-*",
+                "arn:aws:s3:::tfstate-*/*"
             ]
         },
         {
@@ -350,7 +362,7 @@ locals {
 ```hcl
 locals {
   environment = "dev"
-  account_id  = "111111111111"  # Your AWS account ID
+  account_id  = get_aws_account_id() # Dynamically retrieved from AWS credentials
   aws_profile = "bootstrap-dev"
 }
 ```
@@ -391,12 +403,27 @@ grep -r "yourcompany" live/
 cd live/dev/bootstrap
 export AWS_PROFILE=bootstrap-dev
 
-# Apply with local backend
-terragrunt apply --terragrunt-no-auto-init -backend=false
+# Step 1: Verify you're in the right account
+aws sts get-caller-identity
+ 
+# Step 2: Initialize WITHOUT remote backend (local state)
+terragrunt init -backend=false
+ 
+# Step 3: Review what will be created
+terragrunt plan
+ 
+# Step 4: Create the infrastructure
+terragrunt apply
 ```
 
 **Expected output:**
 ```
+Do you want to perform these actions?
+ Terraform will perform the actions described above.
+ Only 'yes' will be accepted to approve.
+
+Enter a value: yes
+
 Apply complete! Resources: 11 added, 0 changed, 0 destroyed.
 
 Outputs:
@@ -593,7 +620,7 @@ With Terragrunt the structure is already in place.
 ### For Each Environment (qa, prod):
 
 1. Create `bootstrap-qa` / `bootstrap-prod` IAM users ([Step 1](#step-1-create-bootstrap-iam-user))
-2. Fill in `live/qa/account.hcl` and `live/prod/account.hcl`
+2. Configure AWS CLI profiles (`bootstrap-qa`, `bootstrap-prod`)
 3. First-time deploy:
    ```bash
    cd live/qa/bootstrap
@@ -765,3 +792,4 @@ You've successfully deployed:
 - ✅ Multi-environment Terragrunt structure (dev/qa/prod)
 
 **Your AWS infrastructure is now fully automated, secure, and ready for production CI/CD.**
+
