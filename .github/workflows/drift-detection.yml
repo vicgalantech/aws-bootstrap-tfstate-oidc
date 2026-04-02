@@ -1,0 +1,227 @@
+name: 🔍 Infrastructure Drift Detection
+
+on:
+  schedule:
+    # Run every day at 9 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: false
+        type: choice
+        options:
+          - xxx
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+env:
+  TF_VERSION: '1.6.0'
+  AWS_REGION: 'eu-west-1'
+  WORKING_DIR: './bootstrap'
+  # Map lowercase environment to uppercase for GitHub variable lookup
+  ENV_MAP: '{"dev": "DEV", "qa": "QA", "prod": "PROD"}'
+
+jobs:
+  # ================================================
+  # Drift Detection
+  # ================================================
+  detect-drift:
+    name: 🔍 Detect Drift - ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ${{ github.event.inputs.environment == 'all' && fromJSON('["dev", "qa", "prod"]') || fromJSON(format('["{0}"]', github.event.inputs.environment || 'dev')) }}
+      fail-fast: false
+    environment: ${{ matrix.environment }}
+    outputs:
+      drift-detected: ${{ steps.drift.outputs.exitcode }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', fromJSON(env.ENV_MAP)[matrix.environment])] }}
+          role-session-name: DriftDetection-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-tags: |
+            projectID=bootstrap
+            environment=${{ matrix.environment }}
+            action=drift-detection
+            managed-by=github-actions
+
+      - name: Terraform Init
+        run: |
+          if [ -f "backend-config.hcl" ]; then
+            terraform init -backend-config=backend-config.hcl
+          else
+            terraform init
+          fi
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Detect Configuration Drift
+        id: drift
+        run: |
+          echo "🔍 Checking for infrastructure drift in ${{ matrix.environment }}..."
+          terraform plan \
+            -var="environment=${{ matrix.environment }}" \
+            -detailed-exitcode \
+            -no-color \
+            -out=drift-plan.binary
+        working-directory: ${{ env.WORKING_DIR }}
+        continue-on-error: true
+
+      - name: Convert plan to JSON
+        if: steps.drift.outputs.exitcode == '2'
+        run: terraform show -json drift-plan.binary > drift-plan.json
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Analyze drift
+        if: steps.drift.outputs.exitcode == '2'
+        id: analyze
+        run: |
+          echo "📊 Analyzing drift..."
+          
+          # Parse the plan to get resource changes
+          cat drift-plan.json | jq -r '
+            .resource_changes[] |
+            select(.change.actions != ["no-op"]) |
+            "\(.address): \(.change.actions | join(", "))"
+          ' > drift-summary.txt
+          
+          echo "drift_count=$(wc -l < drift-summary.txt)" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Upload drift report
+        if: steps.drift.outputs.exitcode == '2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report-${{ matrix.environment }}
+          path: |
+            ${{ env.WORKING_DIR }}/drift-plan.json
+            ${{ env.WORKING_DIR }}/drift-summary.txt
+          retention-days: 30
+
+      - name: Create drift issue
+        if: steps.drift.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const driftSummary = fs.readFileSync('${{ env.WORKING_DIR }}/drift-summary.txt', 'utf8');
+            
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'drift,${{ matrix.environment }}'
+            });
+            
+            const issueBody = `## ⚠️ Infrastructure Drift Detected
+            
+            **Environment:** \`${{ matrix.environment }}\`
+            **Detected:** ${new Date().toISOString()}
+            **Run ID:** ${{ github.run_id }}
+            
+            ### 📊 Drift Summary
+            
+            **Resources affected:** ${{ steps.analyze.outputs.drift_count }}
+            
+            \`\`\`
+            ${driftSummary}
+            \`\`\`
+            
+            ### 🔍 Investigation Steps
+            
+            1. **Review the drift report** artifact attached to [this workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. **Identify the source** of the drift:
+               - Manual changes in AWS Console?
+               - External automation?
+               - Missing Terraform configuration?
+            3. **Reconcile** the infrastructure:
+               - Update Terraform code to match desired state
+               - Or revert manual changes
+            
+            ### 🚀 Resolution
+            
+            To fix the drift:
+            \`\`\`bash
+            cd bootstrap/
+            terraform plan -var="environment=${{ matrix.environment }}"
+            terraform apply -var="environment=${{ matrix.environment }}"
+            \`\`\`
+            
+            ### 📋 Compliance Note
+            
+            Infrastructure drift may indicate:
+            - Unauthorized changes
+            - Configuration management gaps
+            - Compliance violations (SOC 2, PCI-DSS)
+            
+            **Action Required:** Investigate within 24 hours.
+            
+            ---
+            *This issue was automatically created by [Drift Detection workflow](https://github.com/${{ github.repository }}/actions/workflows/drift-detection.yml)*`;
+            
+            if (issues.data.length === 0) {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `⚠️ Infrastructure Drift Detected - ${{ matrix.environment }}`,
+                body: issueBody,
+                labels: ['drift', 'infrastructure', '${{ matrix.environment }}', 'priority:high']
+              });
+            } else {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: `### 🔄 Drift Still Present\n\nRe-detected at ${new Date().toISOString()}\n\n${issueBody}`
+              });
+            }
+
+      - name: Drift status
+        run: |
+          if [ "${{ steps.drift.outputs.exitcode }}" == "0" ]; then
+            echo "✅ No drift detected in ${{ matrix.environment }}"
+          elif [ "${{ steps.drift.outputs.exitcode }}" == "2" ]; then
+            echo "⚠️ Drift detected in ${{ matrix.environment }}"
+            echo "Affected resources: ${{ steps.analyze.outputs.drift_count }}"
+          else
+            echo "❌ Error checking drift in ${{ matrix.environment }}"
+            exit 1
+          fi
+
+  # ================================================
+  # Summary Report
+  # ================================================
+  summary:
+    name: 📊 Drift Summary
+    runs-on: ubuntu-latest
+    needs: detect-drift
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🔍 Drift Detection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| dev | ${{ needs.detect-drift.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Drift detection complete" >> $GITHUB_STEP_SUMMARY

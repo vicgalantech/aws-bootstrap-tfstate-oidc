@@ -418,11 +418,9 @@ terragrunt apply
 
 **Expected output:**
 ```
-Do you want to perform these actions?
+Prompted: `Do you want to perform these actions?
  Terraform will perform the actions described above.
- Only 'yes' will be accepted to approve.
-
-Enter a value: yes
+ Only 'yes' will be accepted to approve.` → **yes**
 
 Apply complete! Resources: 11 added, 0 changed, 0 destroyed.
 
@@ -440,6 +438,40 @@ terragrunt output -json > /tmp/bootstrap-dev-outputs.json
 
 ### Step 4: Migrate State to S3
 
+Now that the S3 bucket exists, enable remote state for this environment.
+
+#### 4.1: Uncomment Remote State Block
+
+Edit `live/dev/bootstrap/terragrunt.hcl` and uncomment the `remote_state` block:
+
+```hcl
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket       = "tfstate-${local.common.locals.company_name}-${local.account.locals.environment}-${local.account.locals.account_id}"
+    key          = "${path_relative_to_include()}/terraform.tfstate"
+    region       = local.common.locals.aws_region
+    encrypt      = true
+    use_lockfile = true
+
+    skip_bucket_versioning             = true
+    skip_bucket_ssencryption           = true
+    skip_bucket_accesslogging          = true
+    skip_bucket_root_access            = true
+    skip_bucket_enforced_tls           = true
+    skip_bucket_public_access_blocking = true
+  }
+}
+```
+
+**Why per-environment?** Each environment (dev/qa/prod) has its own `remote_state` block. This allows independent state migration - deploying dev doesn't affect qa/prod.
+
+#### 4.2: Run State Migration
+
 ```bash
 # Still in live/dev/bootstrap/
 terragrunt init -migrate-state
@@ -453,10 +485,11 @@ Successfully configured the backend "s3"!
 Terraform has been successfully initialized!
 ```
 
-Verify state in S3:
+#### 4.3: Verify State in S3
+
 ```bash
 BUCKET=$(terragrunt output -raw terraform_state_bucket)
-aws s3 ls s3://${BUCKET}/live/dev/bootstrap/ --profile bootstrap-dev
+aws s3 ls s3://${BUCKET}/dev/bootstrap/ --profile bootstrap-dev
 ```
 
 Should show `terraform.tfstate`.
@@ -511,15 +544,16 @@ terragrunt output github_actions_role_arn
 
 Copy the ARN (e.g., `arn:aws:iam::111111111111:role/github-actions-terraform-dev`).
 
-#### 6.2: Set GitHub Repository Variables
+#### 6.2: Set GitHub Organization Variables
 
-1. Go to your GitHub repository
-2. **Settings** → **Secrets and variables** → **Actions** → **Variables**
-3. Click **New repository variable**
+1. Go to your GitHub organization
+2. **Settings** → **Organization settings** → **Secrets** → **Actions** → **Organization secrets**
+3. Click **New repository secret**
 4. Add:
    - Name: `AWS_ROLE_ARN_DEV`
    - Value: `arn:aws:iam::111111111111:role/github-actions-terraform-dev`
-5. Add:
+5. **variables** → **Crate new organization variable**
+6. Add:
    - Name: `COMPANY_NAME`
    - Value: your company prefix from `live/common.hcl`
 
@@ -621,14 +655,22 @@ With Terragrunt the structure is already in place.
 
 1. Create `bootstrap-qa` / `bootstrap-prod` IAM users ([Step 1](#step-1-create-bootstrap-iam-user))
 2. Configure AWS CLI profiles (`bootstrap-qa`, `bootstrap-prod`)
-3. First-time deploy:
+3. First-time deploy with local state:
    ```bash
-   cd live/qa/bootstrap
-   export AWS_PROFILE=bootstrap-qa
-   terragrunt apply --terragrunt-no-auto-init -backend=false
-   terragrunt init -migrate-state
+   cd live/qa/bootstrap  # or live/prod/bootstrap
+   export AWS_PROFILE=bootstrap-qa  # or bootstrap-prod
+   
+   terragrunt init -backend=false
+   terragrunt plan
+   terragrunt apply
    ```
-4. Add GitHub variables: `AWS_ROLE_ARN_QA`, `AWS_ROLE_ARN_PROD`
+4. **Uncomment** `remote_state` block in `live/qa/bootstrap/terragrunt.hcl`
+5. Migrate state to S3:
+   ```bash
+   terragrunt init -migrate-state
+   # Type 'yes' when prompted
+   ```
+6. Add GitHub variables: `AWS_ROLE_ARN_QA`, `AWS_ROLE_ARN_PROD`
 
 ### Deploy All Environments (after first-time setup)
 
