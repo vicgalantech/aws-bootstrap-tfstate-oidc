@@ -362,76 +362,82 @@ jobs:
   # Job 6: Drift Detection (runs every Monday 06:00 UTC)
   # Runs terragrunt plan for each environment in parallel
   # ============================================================
-  drift-detection:
-    name: Drift Detection (${{ matrix.environment }})
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
-    timeout-minutes: 20
-    permissions:
-      id-token: write
-      contents: read
-      issues: write
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [dev, qa, prod]
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Prepare env
-        id: prep
-        run: echo "ENV_UPPER=$(echo ${{ matrix.environment }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
-
-      - uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Setup Terragrunt
-        uses: ./.github/actions/setup-terragrunt
-        with:
-          version: ${{ env.TG_VERSION }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
-        with:
-          role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', steps.prep.outputs.ENV_UPPER)] }}
-          role-session-name: DriftDetection-${{ github.run_id }}-${{ matrix.environment }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-tags: |
-            Project=bootstrap
-            environment=${{ matrix.environment }}
-            managed-by=github-actions
-            action=drift-detection
-
-      - name: Terragrunt Init
-        run: terragrunt init -input=false -reconfigure
-        working-directory: ./live/${{ matrix.environment }}/bootstrap
-
-      - name: Detect Drift
-        id: drift
-        run: |
-          terragrunt plan \
-            -detailed-exitcode \
-            -no-color
-        working-directory: ./live/${{ matrix.environment }}/bootstrap
-        continue-on-error: true
-
-      - name: Create issue if drift detected
-        if: steps.drift.outputs.exitcode == '2'
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `⚠️ Infrastructure Drift Detected - ${{ matrix.environment }}`,
-              body: `Drift detected in **${{ matrix.environment }}** environment.
-
-            The real AWS state no longer matches the Terragrunt configuration.
-
-            **Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            **Date:** ${new Date().toUTCString()}
-
-            Please review and apply changes to reconcile infrastructure.`,
-              labels: ['drift', 'infrastructure', '${{ matrix.environment }}']
-            })
+  # Drift Detection (runs every Monday 06:00 UTC)
+  # Runs terragrunt plan for each environment in parallel
+  #
+  # Commented out for now as it's not used
+  # Uncomment the job when you want to enable it
+  #
+  # drift-detection:
+  #   name: Drift Detection (${{ matrix.environment }})
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'schedule'
+  #   timeout-minutes: 20
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #     issues: write
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       environment: [dev, qa, prod]
+  #   steps:
+  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  #
+  #     - name: Prepare env
+  #       id: prep
+  #       run: echo "ENV_UPPER=$(echo ${{ matrix.environment }} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
+  #
+  #     - uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
+  #       with:
+  #         terraform_version: ${{ env.TF_VERSION }}
+  #
+  #     - name: Setup Terragrunt
+  #       uses: ./.github/actions/setup-terragrunt
+  #       with:
+  #         version: ${{ env.TG_VERSION }}
+  #
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+  #       with:
+  #         role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', steps.prep.outputs.ENV_UPPER)] }}
+  #         role-session-name: DriftDetection-${{ github.run_id }}-${{ matrix.environment }}
+  #         aws-region: ${{ env.AWS_REGION }}
+  #         role-session-tags: |
+  #           Project=bootstrap
+  #           environment=${{ matrix.environment }}
+  #           managed-by=github-actions
+  #           action=drift-detection
+  #
+  #     - name: Terragrunt Init
+  #       run: terragrunt init -input=false -reconfigure
+  #       working-directory: ./live/${{ matrix.environment }}/bootstrap
+  #
+  #     - name: Detect Drift
+  #       id: drift
+  #       run: |
+  #         terragrunt plan \
+  #           -detailed-exitcode \
+  #           -no-color
+  #       working-directory: ./live/${{ matrix.environment }}/bootstrap
+  #       continue-on-error: true
+  #
+  #     - name: Create issue if drift detected
+  #       if: steps.drift.outputs.exitcode == '2'
+  #       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+  #       with:
+  #         script: |
+  #           github.rest.issues.create({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             title: `⚠️ Infrastructure Drift Detected - ${{ matrix.environment }}`,
+  #             body: `Drift detected in **${{ matrix.environment }}** environment.
+  #
+  #           The real AWS state no longer matches the Terragrunt configuration.
+  #
+  #           **Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+  #           **Date:** ${new Date().toUTCString()}
+  #
+  #           Please review and apply changes to reconcile infrastructure.`,
+  #             labels: ['drift', 'infrastructure', '${{ matrix.environment }}']
+  #           })
