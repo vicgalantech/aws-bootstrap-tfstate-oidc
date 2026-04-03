@@ -147,11 +147,11 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@v12.2867.0
 
       - name: Run Checkov
         id: checkov
-        uses: bridgecrewio/checkov-action@fdc39ed8de1c0e9d68305ca19c0ba95c3601695 # v3.2.1
+        uses: bridgecrewio/checkov-action@v12.2867.0
         with:
           directory: ./modules/bootstrap
           framework: terraform
