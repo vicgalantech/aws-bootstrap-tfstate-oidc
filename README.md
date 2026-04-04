@@ -201,104 +201,136 @@ In the JSON editor, paste:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "ManageOIDC",
-            "Effect": "Allow",
-            "Action": [
-                "iam:CreateOpenIDConnectProvider",
-                "iam:DeleteOpenIDConnectProvider",
-                "iam:GetOpenIDConnectProvider",
-                "iam:ListOpenIDConnectProviders",
-                "iam:TagOpenIDConnectProvider",
-                "iam:UpdateOpenIDConnectProviderThumbprint",
-                "iam:UntagOpenIDConnectProvider"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "ManageRolesAndPolicies",
-            "Effect": "Allow",
-            "Action": [
-                "iam:CreateRole",
-                "iam:DeleteRole",
-                "iam:UpdateRole",
-                "iam:GetRole",
-                "iam:ListRoles",
-                "iam:TagRole",
-                "iam:AttachRolePolicy",
-                "iam:DetachRolePolicy",
-                "iam:PutRolePolicy",
-                "iam:DeleteRolePolicy",
-                "iam:GetRolePolicy",
-                "iam:CreatePolicy",
-                "iam:DeletePolicy",
-                "iam:GetPolicy",
-                "iam:GetPolicyVersion",
-                "iam:ListPolicyVersions",
-                "iam:CreatePolicyVersion",
-                "iam:DeletePolicyVersion",
-                "iam:TagPolicy",
-                "iam:UntagPolicy"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "ManageS3ForTerraform",
-            "Effect": "Allow",
-            "Action": [
-                "s3:CreateBucket",
-                "s3:DeleteBucket",
-                "s3:ListBucket",
-                "s3:GetBucket*",
-                "s3:PutBucket*",
-                "s3:DeleteBucketPolicy",
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::tfstate-*",
-                "arn:aws:s3:::tfstate-*/*"
-            ]
-        },
-        {
-            "Sid": "ManageKMSForTerraform",
-            "Effect": "Allow",
-            "Action": [
-                "kms:CreateKey",
-                "kms:CreateAlias",
-                "kms:DeleteAlias",
-                "kms:DescribeKey",
-                "kms:GetKeyPolicy",
-                "kms:PutKeyPolicy",
-                "kms:ScheduleKeyDeletion",
-                "kms:TagResource",
-                "kms:UntagResource",
-                "kms:EnableKeyRotation",
-                "kms:ListAliases",
-                "kms:ListKeys"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "ManageCloudTrail",
-            "Effect": "Allow",
-            "Action": [
-                "cloudtrail:CreateTrail",
-                "cloudtrail:DeleteTrail",
-                "cloudtrail:UpdateTrail",
-                "cloudtrail:StartLogging",
-                "cloudtrail:StopLogging",
-                "cloudtrail:GetTrailStatus",
-                "cloudtrail:PutEventSelectors",
-                "cloudtrail:AddTags",
-                "cloudtrail:RemoveTags"
-            ],
-            "Resource": "*"
-        }
-    ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "ManageOIDC",
+			"Effect": "Allow",
+			"Action": [
+				"iam:CreateOpenIDConnectProvider",
+				"iam:DeleteOpenIDConnectProvider",
+				"iam:GetOpenIDConnectProvider",
+				"iam:ListOpenIDConnectProviders",
+				"iam:TagOpenIDConnectProvider",
+				"iam:UpdateOpenIDConnectProviderThumbprint",
+				"iam:UntagOpenIDConnectProvider"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ManageRolesAndPolicies",
+			"Effect": "Allow",
+			"Action": [
+				"iam:CreateRole",
+				"iam:DeleteRole",
+				"iam:UpdateRole",
+				"iam:GetRole",
+				"iam:ListRoles",
+				"iam:TagRole",
+				"iam:AttachRolePolicy",
+				"iam:ListRolePolicies",
+				"iam:DetachRolePolicy",
+				"iam:PutRolePolicy",
+				"iam:DeleteRolePolicy",
+				"iam:CreatePolicy",
+				"iam:DeletePolicy",
+				"iam:GetPolicy",
+				"iam:ListPolicies",
+				"iam:ListAttachedRolePolicies",
+				"iam:SimulatePrincipalPolicy",
+				"iam:TagPolicy",
+				"iam:ListInstanceProfilesForRole",
+				"iam:GetPolicyVersion",
+				"iam:ListPolicyVersions",
+				"iam:CreatePolicyVersion",
+				"iam:UntagPolicy",
+				"iam:UntagRole",
+				"iam:DeletePolicyVersion",
+				"iam:GetRolePolicy"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ListAllBucketsGlobal",
+			"Effect": "Allow",
+			"Action": [
+				"s3:ListAllMyBuckets"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ManageS3ForTerraform",
+			"Effect": "Allow",
+			"Action": [
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:ListBucket",
+				"s3:GetBucketLocation",
+				"s3:GetBucketVersioning",
+				"s3:PutBucketVersioning",
+				"s3:GetBucketPublicAccessBlock",
+				"s3:PutBucketPublicAccessBlock",
+				"s3:GetBucketPolicy",
+				"s3:PutBucketPolicy",
+				"s3:DeleteBucketPolicy",
+				"s3:GetBucketTagging",
+				"s3:PutBucketTagging",
+				"s3:GetLifecycleConfiguration",
+				"s3:PutLifecycleConfiguration",
+				"s3:GetBucketAcl",
+				"s3:PutBucketAcl",
+				"s3:GetObject",
+				"s3:PutObject",
+				"s3:DeleteObject",
+				"s3:GetBucketCORS",
+				"s3:GetBucketWebsite",
+				"s3:GetAccelerateConfiguration",
+				"s3:GetBucketRequestPayment",
+				"s3:GetBucketLogging",
+				"s3:GetReplicationConfiguration",
+				"s3:GetEncryptionConfiguration",
+				"s3:GetBucketObjectLockConfiguration",
+				"s3:PutEncryptionConfiguration",
+				"s3:ListBucketVersions",
+				"s3:PutBucketLogging",
+				"s3:GetBucketOwnershipControls",
+				"s3:PutBucketOwnershipControls"
+			],
+			"Resource": [
+				"arn:aws:s3:::tfstate-*",
+				"arn:aws:s3:::tfstate-*/*"
+			]
+		},
+		{
+			"Sid": "AuditCloudWatchLogs",
+			"Effect": "Allow",
+			"Action": [
+				"logs:DescribeLogGroups",
+				"logs:DescribeLogStreams",
+				"logs:FilterLogEvents",
+				"logs:GetLogEvents"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ManageKMSForS3",
+			"Effect": "Allow",
+			"Action": [
+				"kms:TagResource",
+				"kms:CreateKey",
+				"kms:EnableKeyRotation",
+				"kms:DescribeKey",
+				"kms:GetKeyPolicy",
+				"kms:GetKeyRotationStatus",
+				"kms:ListResourceTags",
+				"kms:ScheduleKeyDeletion",
+				"kms:CreateAlias",
+				"kms:ListAliases",
+				"kms:DeleteAlias"
+			],
+			"Resource": "*"
+		}
+	]
 }
 ```
 
