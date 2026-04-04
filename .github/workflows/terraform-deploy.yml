@@ -247,7 +247,7 @@ jobs:
 
       - name: Upload plan artifact
         if: steps.plan.outputs.exitcode == '2'
-        uses: actions/upload-artifact@65c4c4a1e8c8b35b6f9a1bcbb2cf4f56e98afe6c # v4.6.0
+        uses: actions/upload-artifact@v4.6.0
         with:
           name: tfplan-${{ env.ENV }}
           path: ./live/${{ env.ENV }}/bootstrap/tfplan-${{ env.ENV }}.binary
@@ -321,7 +321,7 @@ jobs:
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Download plan artifact
-        uses: actions/download-artifact@fa0a91b85d4f404e444306234c7afecc4b494e94 # v4.1.8
+        uses: actions/download-artifact@v4.1.8
         with:
           name: tfplan-${{ env.ENV }}
           path: ./live/${{ env.ENV }}/bootstrap
@@ -338,7 +338,7 @@ jobs:
 
       - name: Upload outputs
         if: success()
-        uses: actions/upload-artifact@65c4c4a1e8c8b35b6f9a1bcbb2cf4f56e98afe6c # v4.6.0
+        uses: actions/upload-artifact@v4.6.0
         with:
           name: terraform-outputs-${{ env.ENV }}
           path: ./live/${{ env.ENV }}/bootstrap/outputs.json
