@@ -216,7 +216,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
-          role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
+          role-to-assume: ${{ secrets[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
           role-session-name: TerragruntPlan-${{ github.run_id }}-${{ env.ENV }}
           aws-region: ${{ env.AWS_REGION }}
 
@@ -298,7 +298,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
-          role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
+          role-to-assume: ${{ secrets[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
           role-session-name: TerragruntApply-${{ github.run_id }}-${{ env.ENV }}
           aws-region: ${{ env.AWS_REGION }}
 
@@ -386,7 +386,7 @@ jobs:
   #     - name: Configure AWS credentials
   #       uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
   #       with:
-  #         role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', steps.prep.outputs.ENV_UPPER)] }}
+  #         role-to-assume: ${{ secrets[format('AWS_ROLE_ARN_{0}', steps.prep.outputs.ENV_UPPER)] }}
   #         role-session-name: DriftDetection-${{ github.run_id }}-${{ matrix.environment }}
   #         aws-region: ${{ env.AWS_REGION }}
   #         role-session-tags: |

@@ -23,7 +23,7 @@ Production-ready Terragrunt implementation for AWS GitHub OIDC federation with k
   - [Step 3: First-Time Deploy](#step-3-first-time-deploy)
   - [Step 4: Migrate State to S3](#step-4-migrate-state-to-s3)
   - [Step 5: Verify Setup](#step-5-verify-setup)
-  - [Step 6: Configure GitHub Variables](#step-6-configure-github-variables)
+  - [Step 6: Configure GitHub Secrets](#step-6-configure-github-secrets)
   - [Step 7: Test GitHub Actions](#step-7-test-github-actions)
 - [Architecture](#architecture)
 - [Multi-Environment Setup](#multi-environment-setup)
@@ -111,7 +111,7 @@ git --version
 
 - GitHub organization or personal account
 - Repository with Actions enabled
-- Admin access (to set repository variables)
+- Admin access (to set repository secrets)
 
 ---
 
@@ -163,11 +163,10 @@ terragrunt apply
 terragrunt init -migrate-state
 ```
 
-### 3. Set GitHub Variables
+### 3. Set GitHub Secrets
 
-Go to **Settings → Secrets and variables → Actions → Variables**:
+Go to **Settings → Secrets and variables → Actions → Secrets**:
 - `AWS_ROLE_ARN_DEV` = output from `terragrunt output github_actions_role_arn`
-- `COMPANY_NAME` = your company prefix
 
 ### 4. Push & Test
 
@@ -534,7 +533,7 @@ Should show OIDC conditions for your GitHub org/repo.
 
 ---
 
-### Step 6: Configure GitHub Variables
+### Step 6: Configure GitHub Secrets
 
 #### 6.1: Get Role ARN
 
@@ -544,18 +543,15 @@ terragrunt output github_actions_role_arn
 
 Copy the ARN (e.g., `arn:aws:iam::111111111111:role/github-actions-terraform-dev`).
 
-#### 6.2: Set GitHub Organization Variables
+#### 6.2: Set GitHub Organization Secret
 
 1. Go to your GitHub organization
-2. **Settings** → **Organization settings** → **Secrets** → **Actions** → **Organization secrets**
-3. Click **New repository secret**
+2. **Settings** → **Organization settings** → **Secrets and variables** → **Actions** → **Secrets**
+3. Click **New organization secret**
 4. Add:
    - Name: `AWS_ROLE_ARN_DEV`
    - Value: `arn:aws:iam::111111111111:role/github-actions-terraform-dev`
-5. **variables** → **Crate new organization variable**
-6. Add:
-   - Name: `COMPANY_NAME`
-   - Value: your company prefix from `live/common.hcl`
+   - Repository access: Select your repository or "All repositories"
 
 ---
 
@@ -670,7 +666,7 @@ With Terragrunt the structure is already in place.
    terragrunt init -migrate-state
    # Type 'yes' when prompted
    ```
-6. Add GitHub variables: `AWS_ROLE_ARN_QA`, `AWS_ROLE_ARN_PROD`
+6. Add GitHub secrets: `AWS_ROLE_ARN_QA`, `AWS_ROLE_ARN_PROD`
 
 ### Deploy All Environments (after first-time setup)
 
