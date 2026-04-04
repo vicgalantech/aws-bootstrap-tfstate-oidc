@@ -39,6 +39,7 @@ data "aws_iam_policy_document" "terraform_deployment" {
       "s3:GetBucketLogging",
       "s3:GetBucketOwnershipControls",
       "s3:GetBucketCors",
+      "s3:GetBucketWebsite"
     ]
     resources = [
       "arn:aws:s3:::tfstate-${var.company_name}-${var.environment}-*",
