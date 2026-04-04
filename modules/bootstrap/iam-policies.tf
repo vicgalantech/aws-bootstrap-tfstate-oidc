@@ -39,7 +39,18 @@ data "aws_iam_policy_document" "terraform_deployment" {
       "s3:GetBucketLogging",
       "s3:GetBucketOwnershipControls",
       "s3:GetBucketCors",
-      "s3:GetBucketWebsite"
+      "s3:GetBucketWebsite",
+      "s3:GetAccelerateConfiguration",
+      "s3:GetBucketRequestPayment",
+      "s3:GetBucketLogging",
+      "s3:GetReplicationConfiguration",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:PutEncryptionConfiguration",
+      "s3:ListBucketVersions",
+      "s3:PutBucketLogging",
+      "s3:GetBucketOwnershipControls",
+      "s3:PutBucketOwnershipControls"
     ]
     resources = [
       "arn:aws:s3:::tfstate-${var.company_name}-${var.environment}-*",
