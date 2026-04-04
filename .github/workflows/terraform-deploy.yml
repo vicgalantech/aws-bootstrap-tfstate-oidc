@@ -219,13 +219,6 @@ jobs:
           role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
           role-session-name: TerragruntPlan-${{ github.run_id }}-${{ env.ENV }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-tags: |
-            Project=bootstrap
-            environment=${{ env.ENV }}
-            github-org=${{ github.repository_owner }}
-            github-actor=${{ github.actor }}
-            managed-by=github-actions
-            action=terragrunt-plan
 
       - name: Terragrunt Init
         run: terragrunt init -input=false -reconfigure
@@ -308,13 +301,6 @@ jobs:
           role-to-assume: ${{ vars[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
           role-session-name: TerragruntApply-${{ github.run_id }}-${{ env.ENV }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-tags: |
-            Project=bootstrap
-            environment=${{ env.ENV }}
-            github-org=${{ github.repository_owner }}
-            github-actor=${{ github.actor }}
-            managed-by=github-actions
-            action=terragrunt-apply
 
       - name: Terragrunt Init
         run: terragrunt init -input=false -reconfigure
