@@ -312,6 +312,10 @@ jobs:
           name: tfplan-${{ env.ENV }}
           path: ./live/${{ env.ENV }}/bootstrap
 
+      - name: Terragrunt Plan
+        run: terragrunt plan -out=tfplan-${{ env.ENV }}.binary
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
       - name: Terragrunt Apply
         id: apply
         run: terragrunt apply -auto-approve tfplan-${{ env.ENV }}.binary
