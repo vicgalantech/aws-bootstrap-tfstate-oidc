@@ -313,12 +313,12 @@ jobs:
       #     path: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Plan
-        run: terragrunt plan -out=tfplan-${{ env.ENV }}.binary
+        run: terragrunt plan
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Apply
         id: apply
-        run: terragrunt apply -auto-approve tfplan-${{ env.ENV }}.binary
+        run: terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Upload outputs artifact
