@@ -306,11 +306,11 @@ jobs:
         run: terragrunt init -input=false -reconfigure
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
-      - name: Download plan artifact
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: tfplan-${{ env.ENV }}
-          path: ./live/${{ env.ENV }}/bootstrap
+      # - name: Download plan artifact
+      #   uses: actions/download-artifact@v4.1.8
+      #   with:
+      #     name: tfplan-${{ env.ENV }}
+      #     path: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Plan
         run: terragrunt plan -out=tfplan-${{ env.ENV }}.binary
