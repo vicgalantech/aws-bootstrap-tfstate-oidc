@@ -313,14 +313,29 @@ jobs:
       #     path: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Plan
-        run: terragrunt plan
+        id: plan
+        run: |
+          # Capturamos el exit code: 0=no cambios, 1=error, 2=cambios
+          set +e
+          terragrunt plan -out=tfplan.binary -detailed-exitcode -no-color
+          EXIT_CODE=$?
+          echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 1 ]; then 
+            echo "::error::Terraform Plan failed"
+            exit 1
+          fi
+          exit 0
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Apply
-        id: apply
-        run: terragrunt apply -auto-approve -input=false
-        env:
-          TF_LOG: DEBUG
+        if: |
+          steps.plan.outputs.exitcode == '2' && 
+          (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+        run: |
+          # Usamos el binario para evitar el error de "Can't change variable"
+          # naked format evita el bug del timestamp con "Z"
+          terragrunt apply -auto-approve -input=false --terragrunt-log-format naked tfplan.binary
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Upload outputs artifact
