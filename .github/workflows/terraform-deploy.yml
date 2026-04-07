@@ -318,9 +318,9 @@ jobs:
 
       - name: Terragrunt Apply
         id: apply
+        run: terragrunt apply -auto-approve -input=false
         env:
           TF_LOG: DEBUG
-        run: terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Upload outputs artifact
