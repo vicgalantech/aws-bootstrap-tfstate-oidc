@@ -318,6 +318,8 @@ jobs:
 
       - name: Terragrunt Apply
         id: apply
+        env:
+          TF_LOG: DEBUG
         run: terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
