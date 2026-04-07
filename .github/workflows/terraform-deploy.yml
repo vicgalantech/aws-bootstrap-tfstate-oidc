@@ -306,10 +306,15 @@ jobs:
         run: terragrunt init -input=false -reconfigure
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
+      - name: Clear Terragrunt Cache
+        run: |
+          # Remove any cached plan files to avoid variable mismatch
+          rm -rf .terragrunt-cache
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
       - name: Terragrunt Apply
         run: |
-          # Apply without separate plan step to avoid cached plan variable mismatch
-          # Terragrunt will run plan internally before apply
+          # Apply will create fresh plan without cached variables
           terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
