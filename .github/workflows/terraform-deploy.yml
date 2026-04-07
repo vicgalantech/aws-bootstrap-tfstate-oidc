@@ -329,9 +329,6 @@ jobs:
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Terragrunt Apply
-        if: |
-          steps.plan.outputs.exitcode == '2' && 
-          (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
         run: |
           # Usamos el binario para evitar el error de "Can't change variable"
           # naked format evita el bug del timestamp con "Z"
