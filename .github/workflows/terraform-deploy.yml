@@ -306,25 +306,11 @@ jobs:
         run: terragrunt init -input=false -reconfigure
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
-      # - name: Download plan artifact
-      - name: Terragrunt Plan
-        id: plan
-        run: |
-          # Run plan without saving to file (avoids variable mismatch errors)
-          set +e
-          terragrunt plan -detailed-exitcode -no-color
-          EXIT_CODE=$?
-          echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
-          
-          if [ $EXIT_CODE -eq 1 ]; then 
-            echo "::error::Terraform Plan failed"
-            exit 1
-          fi
-          exit 0
-        working-directory: ./live/${{ env.ENV }}/bootstrap
-
       - name: Terragrunt Apply
-        run: terragrunt apply -auto-approve -input=false
+        run: |
+          # Apply without separate plan step to avoid cached plan variable mismatch
+          # Terragrunt will run plan internally before apply
+          terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Upload outputs artifact
