@@ -273,9 +273,9 @@ jobs:
     name: Terragrunt Apply
     runs-on: ubuntu-latest
     needs: [detect-environment]
-    if: |
-      needs.plan.outputs.exitcode == '2' &&
-      (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+    #if: |
+    #  needs.plan.outputs.exitcode == '2' &&
+    #  (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
     timeout-minutes: 30
     permissions:
       id-token: write
