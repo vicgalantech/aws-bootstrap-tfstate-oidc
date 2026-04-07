@@ -38,7 +38,7 @@ permissions: {}
 env:
   AWS_REGION: 'eu-west-1'
   TF_VERSION: '1.10.0'
-  TG_VERSION: '0.67.0'
+  TG_VERSION: '0.66.9'
 
 jobs:
   # ============================================================
@@ -319,8 +319,8 @@ jobs:
       - name: Terragrunt Apply
         id: apply
         run: terragrunt apply -auto-approve -input=false
-        #env:
-        #  TF_LOG: DEBUG
+        env:
+          TF_LOG: DEBUG
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Upload outputs artifact
