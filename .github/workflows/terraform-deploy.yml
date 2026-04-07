@@ -306,48 +306,8 @@ jobs:
           run: terragrunt init -input=false -reconfigure
           working-directory: ./live/${{ env.ENV }}/bootstrap
 
-        - name: Terragrunt Plan
-          id: plan
-          run: |
-            # Capturamos el exit code: 0=no cambios, 1=error, 2=cambios
-            set +e
-            terragrunt plan -detailed-exitcode -no-color
-            EXIT_CODE=$?
-            echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
-            
-            if [ $EXIT_CODE -eq 1 ]; then 
-              echo "::error::Terraform Plan failed"
-              exit 1
-            fi
-            exit 0
-          working-directory: ./live/${{ env.ENV }}/bootstrap
-
-        - name: Show Plan in PR
-          if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == '2'
-          run: |
-            terragrunt show -no-color tfplan.binary > /tmp/plan-output.txt
-          working-directory: ./live/${{ env.ENV }}/bootstrap
-
-        - name: Comment PR
-          if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode == '2'
-          uses: actions/github-script@v7
-          with:
-            script: |
-              const fs = require('fs');
-              const output = fs.readFileSync('/tmp/plan-output.txt', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `### 📋 Plan Summary (${{ env.ENV }})\n\`\`\`hcl\n${output.slice(0, 60000)}\n\`\`\``
-              })
-
         - name: Terragrunt Apply
-          if: |
-            steps.plan.outputs.exitcode == '2' && 
-            (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
           run: |
-            env -u TF_VAR_tags -u TF_VAR_allowed_branches \
             terragrunt apply -auto-approve -input=false 
           working-directory: ./live/${{ env.ENV }}/bootstrap
 
