@@ -347,8 +347,7 @@ jobs:
             steps.plan.outputs.exitcode == '2' && 
             (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
           run: |
-            unset TF_VAR_tags
-            unset TF_VAR_allowed_branches
+            env -u TF_VAR_tags -u TF_VAR_allowed_branches \
             terragrunt apply -auto-approve -input=false 
           working-directory: ./live/${{ env.ENV }}/bootstrap
 
