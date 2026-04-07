@@ -311,7 +311,7 @@ jobs:
           run: |
             # Capturamos el exit code: 0=no cambios, 1=error, 2=cambios
             set +e
-            terragrunt plan -out=tfplan.binary -detailed-exitcode -no-color
+            terragrunt plan -detailed-exitcode -no-color
             EXIT_CODE=$?
             echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
             
