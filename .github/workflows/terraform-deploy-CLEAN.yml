@@ -1,0 +1,141 @@
+name: Terraform Deploy - Bootstrap
+
+on:
+  push:
+    branches: [main, develop, "feature/*", "release/*"]
+    paths:
+      - 'live/**'
+      - 'modules/**'
+      - '.github/workflows/terraform-deploy.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'live/**'
+      - 'modules/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options: [dev, qa, prod]
+      action:
+        description: 'Action to perform'
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  AWS_REGION: 'eu-west-1'
+  TF_VERSION: '1.10.0'
+  TG_VERSION: '0.67.0'
+
+jobs:
+  detect-environment:
+    name: Detect Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      environment: ${{ steps.detect.outputs.environment }}
+      env_upper: ${{ steps.detect.outputs.env_upper }}
+    steps:
+      - id: detect
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            ENV="prod"
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            ENV="qa"
+          else
+            ENV="dev"
+          fi
+          echo "environment=${ENV}" >> $GITHUB_OUTPUT
+          echo "env_upper=$(echo ${ENV} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
+
+  validate:
+    name: Validate & Lint
+    runs-on: ubuntu-latest
+    needs: detect-environment
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./modules
+        continue-on-error: true
+
+  deploy:
+    name: Deploy (${{ needs.detect-environment.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [detect-environment, validate]
+    timeout-minutes: 40
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ENV: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: ./.github/actions/setup-terragrunt
+        with:
+          version: ${{ env.TG_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
+          role-session-name: TerraformDeploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terragrunt Init
+        run: terragrunt init -reconfigure
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
+      - name: Terragrunt Plan  
+        run: terragrunt plan -no-color
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
+      - name: Terragrunt Apply
+        if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+        run: |
+          # Clear cache to avoid variable mismatch
+          rm -rf .terragrunt-cache
+          terragrunt apply -auto-approve -input=false
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
+      - name: Export Outputs
+        if: success()
+        run: terragrunt output -json > outputs.json
+        working-directory: ./live/${{ env.ENV }}/bootstrap
+
+      - name: Upload Outputs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-${{ env.ENV }}
+          path: ./live/${{ env.ENV }}/bootstrap/outputs.json

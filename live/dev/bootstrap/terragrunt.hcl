@@ -44,7 +44,7 @@ remote_state {
     key          = "${path_relative_to_include()}/terraform.tfstate"
     region       = local.common.locals.aws_region
     encrypt      = true
-    # use_lockfile = true
+    use_lockfile = true
 
     # Do NOT let Terragrunt auto-create the bucket — the bootstrap module owns it.
     skip_bucket_versioning             = true
