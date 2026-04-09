@@ -112,49 +112,94 @@ jobs:
           role-session-name: TerraformDeploy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terragrunt Init
-        run: terragrunt init -reconfigure
-        working-directory: ./live/${{ env.ENV }}/bootstrap
-
-      - name: Terragrunt Apply
-        if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
-        env:
-          TF_LOG: DEBUG
-          TERRAGRUNT_LOG_LEVEL: debug
+      - name: Extract Variables from Terragrunt Config
+        id: extract_vars
         run: |
-          set -x
-          echo "=== Debug Info ==="
-          echo "Working dir: $(pwd)"
-          echo "Cache state:"
-          ls -la .terragrunt-cache/ 2>/dev/null || echo "No cache"
-          echo ""
+          # Read common.hcl values
+          AWS_REGION=$(grep 'aws_region' live/common.hcl | awk -F'"' '{print $2}')
+          COMPANY_NAME=$(grep 'company_name' live/common.hcl | awk -F'"' '{print $2}')
+          GITHUB_ORG=$(grep 'github_org' live/common.hcl | awk -F'"' '{print $2}')
+          GITHUB_REPO=$(grep 'github_repo' live/common.hcl | awk -F'"' '{print $2}')
+          BRANCH_RESTRICTION=$(grep 'enable_branch_restriction' live/common.hcl | awk '{print $3}')
           
-          echo "=== Running Apply (with full output capture) ==="
-          terragrunt apply -auto-approve -input=false 2>&1 | tee /tmp/apply-full.log
-          EXIT_CODE=${PIPESTATUS[0]}
+          # Get AWS account ID from credentials
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           
-          echo ""
-          echo "=== Exit Code: $EXIT_CODE ==="
+          echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "company_name=$COMPANY_NAME" >> $GITHUB_OUTPUT
+          echo "github_org=$GITHUB_ORG" >> $GITHUB_OUTPUT
+          echo "github_repo=$GITHUB_REPO" >> $GITHUB_OUTPUT
+          echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+          echo "branch_restriction=$BRANCH_RESTRICTION" >> $GITHUB_OUTPUT
           
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo ""
-            echo "=== FAILURE - Last 100 lines of output ==="
-            tail -100 /tmp/apply-full.log
-            echo ""
-            echo "=== Searching for errors ==="
-            grep -i "error" /tmp/apply-full.log || echo "No 'error' found"
-            exit $EXIT_CODE
-          fi
-        working-directory: ./live/${{ env.ENV }}/bootstrap
+          echo "Extracted variables for ${{ env.ENV }}:"
+          echo "  Region: $AWS_REGION"
+          echo "  Company: $COMPANY_NAME"
+          echo "  Account ID: $ACCOUNT_ID"
+
+      - name: Generate Terraform Variables File
+        run: |
+          cat > terraform.tfvars << EOF
+          aws_region   = "${{ steps.extract_vars.outputs.aws_region }}"
+          environment  = "${{ env.ENV }}"
+          company_name = "${{ steps.extract_vars.outputs.company_name }}"
+          github_org   = "${{ steps.extract_vars.outputs.github_org }}"
+          github_repo  = "${{ steps.extract_vars.outputs.github_repo }}"
+          
+          enable_branch_restriction = ${{ steps.extract_vars.outputs.branch_restriction }}
+          allowed_branches          = ["main", "develop", "release/*", "feature/*"]
+          
+          enable_cloudtrail         = false
+          cloudtrail_retention_days = 90
+          
+          tags = {
+            ManagedBy   = "Terraform"
+            Environment = "${{ env.ENV }}"
+            Team        = "DevOps"
+            Project     = "bootstrap"
+          }
+          EOF
+          
+          echo "Generated terraform.tfvars:"
+          cat terraform.tfvars
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Init (Pure Terraform - No Terragrunt)
+        run: |
+          # Build backend bucket name from extracted variables
+          BACKEND_BUCKET="tfstate-${{ steps.extract_vars.outputs.company_name }}-${{ env.ENV }}-${{ steps.extract_vars.outputs.account_id }}"
+          
+          echo "Initializing Terraform with S3 backend: $BACKEND_BUCKET"
+          
+          terraform init \
+            -backend-config="bucket=$BACKEND_BUCKET" \
+            -backend-config="key=bootstrap/terraform.tfstate" \
+            -backend-config="region=${{ steps.extract_vars.outputs.aws_region }}" \
+            -backend-config="encrypt=true" \
+            -reconfigure
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Plan
+        run: |
+          terraform plan -out=tfplan -input=false
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Apply (Pure Terraform)
+        if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+        run: |
+          echo "=== Applying Infrastructure Changes ==="
+          terraform apply -auto-approve -input=false tfplan
+          echo "=== Apply Completed Successfully ==="
+        working-directory: ./modules/bootstrap
 
       - name: Export Outputs
         if: success()
-        run: terragrunt output -json > outputs.json
-        working-directory: ./live/${{ env.ENV }}/bootstrap
+        run: terraform output -json > outputs.json
+        working-directory: ./modules/bootstrap
 
       - name: Upload Outputs
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs-${{ env.ENV }}
-          path: ./live/${{ env.ENV }}/bootstrap/outputs.json
+          path: ./modules/bootstrap/outputs.json
