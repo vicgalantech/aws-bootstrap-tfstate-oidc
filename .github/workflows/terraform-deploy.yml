@@ -118,9 +118,33 @@ jobs:
 
       - name: Terragrunt Apply
         if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+        env:
+          TF_LOG: DEBUG
+          TERRAGRUNT_LOG_LEVEL: debug
         run: |
-          # Apply runs plan+apply in one operation to avoid variable mismatch
-          terragrunt apply -auto-approve -input=false
+          set -x
+          echo "=== Debug Info ==="
+          echo "Working dir: $(pwd)"
+          echo "Cache state:"
+          ls -la .terragrunt-cache/ 2>/dev/null || echo "No cache"
+          echo ""
+          
+          echo "=== Running Apply (with full output capture) ==="
+          terragrunt apply -auto-approve -input=false 2>&1 | tee /tmp/apply-full.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          
+          echo ""
+          echo "=== Exit Code: $EXIT_CODE ==="
+          
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=== FAILURE - Last 100 lines of output ==="
+            tail -100 /tmp/apply-full.log
+            echo ""
+            echo "=== Searching for errors ==="
+            grep -i "error" /tmp/apply-full.log || echo "No 'error' found"
+            exit $EXIT_CODE
+          fi
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
       - name: Export Outputs
