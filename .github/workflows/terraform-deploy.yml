@@ -173,7 +173,7 @@ jobs:
           
           terraform init \
             -backend-config="bucket=$BACKEND_BUCKET" \
-            -backend-config="key=bootstrap/terraform.tfstate" \
+            -backend-config="key=${{ env.ENV }}/bootstrap/terraform.tfstate" \
             -backend-config="region=${{ steps.extract_vars.outputs.aws_region }}" \
             -backend-config="encrypt=true" \
             -reconfigure
