@@ -116,15 +116,10 @@ jobs:
         run: terragrunt init -reconfigure
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
-      - name: Terragrunt Plan  
-        run: terragrunt plan -no-color
-        working-directory: ./live/${{ env.ENV }}/bootstrap
-
       - name: Terragrunt Apply
         if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
         run: |
-          # Clear cache to avoid variable mismatch
-          rm -rf .terragrunt-cache
+          # Apply runs plan+apply in one operation to avoid variable mismatch
           terragrunt apply -auto-approve -input=false
         working-directory: ./live/${{ env.ENV }}/bootstrap
 
