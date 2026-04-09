@@ -164,19 +164,32 @@ jobs:
           cat terraform.tfvars
         working-directory: ./modules/bootstrap
 
-      - name: Terraform Init (Pure Terraform - No Terragrunt)
+      - name: Generate Backend Configuration (Mimics Terragrunt)
         run: |
           # Build backend bucket name from extracted variables
           BACKEND_BUCKET="tfstate-${{ steps.extract_vars.outputs.company_name }}-${{ env.ENV }}-${{ steps.extract_vars.outputs.account_id }}"
           
-          echo "Initializing Terraform with S3 backend: $BACKEND_BUCKET"
+          echo "Generating backend.tf for S3 backend: $BACKEND_BUCKET"
           
-          terraform init \
-            -backend-config="bucket=$BACKEND_BUCKET" \
-            -backend-config="key=${{ env.ENV }}/bootstrap/terraform.tfstate" \
-            -backend-config="region=${{ steps.extract_vars.outputs.aws_region }}" \
-            -backend-config="encrypt=true" \
-            -reconfigure
+          cat > backend.tf << EOF
+          terraform {
+            backend "s3" {
+              bucket  = "$BACKEND_BUCKET"
+              key     = "${{ env.ENV }}/bootstrap/terraform.tfstate"
+              region  = "${{ steps.extract_vars.outputs.aws_region }}"
+              encrypt = true
+            }
+          }
+          EOF
+          
+          echo "Generated backend.tf:"
+          cat backend.tf
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Init (Pure Terraform)
+        run: |
+          echo "Initializing Terraform with generated backend configuration"
+          terraform init -reconfigure
         working-directory: ./modules/bootstrap
 
       - name: Terraform Plan
