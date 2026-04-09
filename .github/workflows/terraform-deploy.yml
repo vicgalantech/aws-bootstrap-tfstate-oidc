@@ -36,7 +36,7 @@ permissions: {}
 env:
   AWS_REGION: 'eu-west-1'
   TF_VERSION: '1.10.0'
-  TG_VERSION: '0.67.0'
+  TG_VERSION: '0.68.1'
 
 jobs:
   detect-environment:
@@ -76,7 +76,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
+          terraform_wrapper: false
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
         working-directory: ./modules
@@ -98,6 +98,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Setup Terragrunt
         uses: ./.github/actions/setup-terragrunt
