@@ -174,7 +174,7 @@ jobs:
           terraform {
             backend "s3" {
               bucket  = "$BACKEND_BUCKET"
-              key     = "${{ env.ENV }}/bootstrap/terraform.tfstate"
+              key     = "bootstrap/terraform.tfstate"
               region  = "${{ steps.extract_vars.outputs.aws_region }}"
               encrypt = true
             }

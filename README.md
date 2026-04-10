@@ -326,7 +326,9 @@ In the JSON editor, paste:
 				"kms:ScheduleKeyDeletion",
 				"kms:CreateAlias",
 				"kms:ListAliases",
-				"kms:DeleteAlias"
+				"kms:DeleteAlias",
+				"kms:GenerateDataKey",
+				"kms:Decrypt"
 			],
 			"Resource": "*"
 		}

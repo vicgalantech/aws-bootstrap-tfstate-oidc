@@ -41,7 +41,7 @@ terraform {
 #   }
 #   config = {
 #     bucket       = "tfstate-${local.common.locals.company_name}-${local.account.locals.environment}-${local.account.locals.account_id}"
-#     key          = "${path_relative_to_include()}/terraform.tfstate"
+#     key          = "bootstrap/terraform.tfstate"
 #     region       = local.common.locals.aws_region
 #     encrypt      = true
 #     use_lockfile = true
