@@ -70,7 +70,6 @@ inputs = {
   cloudtrail_retention_days = 90
 
   tags = {
-    ManagedBy   = "Terragrunt"
     Environment = local.account.locals.environment
     Team        = "DevOps"
     Project     = "bootstrap"

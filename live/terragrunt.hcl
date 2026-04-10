@@ -45,7 +45,6 @@ generate "provider" {
 
       default_tags {
         tags = {
-          ManagedBy   = "Terragrunt"
           Environment = "${local.environment}"
           Project     = "bootstrap"
         }

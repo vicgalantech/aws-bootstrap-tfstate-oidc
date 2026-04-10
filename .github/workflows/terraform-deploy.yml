@@ -153,7 +153,6 @@ jobs:
           cloudtrail_retention_days = 90
           
           tags = {
-            ManagedBy   = "Terraform"
             Environment = "${{ env.ENV }}"
             Team        = "DevOps"
             Project     = "bootstrap"
