@@ -591,15 +591,37 @@ Copy the ARN (e.g., `arn:aws:iam::111111111111:role/github-actions-terraform-dev
 
 ### Step 7: Test GitHub Actions
 
-#### 7.1: Push Changes
+#### 7.1: Verify Deploy Job Configuration
+
+**⚠️ IMPORTANT:** Before pushing, ensure the `deploy` job in `.github/workflows/terraform-deploy.yml` matches your Terragrunt configuration.
+
+The workflow extracts variables from HCL files and generates `terraform.tfvars`. Verify these match your `live/{env}/bootstrap/terragrunt.hcl`:
+
+| Workflow Variable | Must Match | Source File |
+|---|---|---|
+| `aws_region` | `local.common.locals.aws_region` | `live/common.hcl` |
+| `company_name` | `local.common.locals.company_name` | `live/common.hcl` |
+| `github_org` | `local.common.locals.github_org` | `live/common.hcl` |
+| `github_repo` | `local.common.locals.github_repo` | `live/common.hcl` |
+| `environment` | `local.account.locals.environment` | `live/{env}/account.hcl` |
+| `enable_cloudtrail` | `inputs.enable_cloudtrail` | `live/{env}/bootstrap/terragrunt.hcl` |
+| `cloudtrail_retention_days` | `inputs.cloudtrail_retention_days` | `live/{env}/bootstrap/terragrunt.hcl` |
+| `tags` | `inputs.tags` | `live/{env}/bootstrap/terragrunt.hcl` |
+| Backend `key` | `remote_state.config.key` | `live/{env}/bootstrap/terragrunt.hcl` |
+
+**Why this matters:** The CI/CD uses pure Terraform (not Terragrunt) due to wrapper compatibility issues. See [ADR-0004](docs/adr/0004-hybrid-terragrunt-terraform-cicd.md) for details.
+
+If configuration drifts between Terragrunt and the workflow, deployments will fail or create unexpected changes.
+
+#### 7.2: Push Changes
 
 ```bash
 git add live/ modules/ .github/
-git commit -m "feat: AWS bootstrap with Terragrunt"
-git push origin develop
+git commit -m "feat: AWS bootstrap"
+git push
 ```
 
-#### 7.2: Monitor Workflow
+#### 7.3: Monitor Workflow
 
 1. Go to **Actions** tab in GitHub
 2. Click the running workflow

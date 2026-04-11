@@ -13,6 +13,7 @@ Format: [MADR (Markdown Architectural Decision Records)](https://adr.github.io/m
 | [0001](0001-arn-based-isolation-vs-abac.md) | ARN-based environment isolation instead of ABAC resource tags | Accepted |
 | [0002](0002-s3-native-locking-vs-dynamodb.md) | S3 native state locking instead of DynamoDB | Accepted |
 | [0003](0003-organisation-wide-oidc-role.md) | Organisation-wide OIDC role with broad IAM permissions | Accepted (risk acknowledged) |
+| [0004](0004-hybrid-terragrunt-terraform-cicd.md) | Hybrid Terragrunt/Terraform CI/CD architecture | Accepted |
 
 ## How to Add an ADR
 
