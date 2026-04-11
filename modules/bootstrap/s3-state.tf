@@ -6,8 +6,8 @@ resource "aws_s3_bucket" "terraform_state" {
   bucket = local.tfstate_bucket_name
 
   tags = merge(var.tags, {
-    Name          = local.tfstate_bucket_name
-    resource-type = "state-backend"
+    Name                = local.tfstate_bucket_name
+    resource-type       = "state-backend"
     test_github_actions = "test passed"
   })
 }

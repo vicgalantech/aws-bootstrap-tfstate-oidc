@@ -316,9 +316,9 @@ data "aws_iam_policy_document" "terraform_deployment" {
 
   # ── KMS: State file encryption/decryption — required for S3 backend ──────────
   statement {
-    sid       = "KMSStateUsage"
-    effect    = "Allow"
-    actions   = [
+    sid    = "KMSStateUsage"
+    effect = "Allow"
+    actions = [
       "kms:GenerateDataKey",
       "kms:Decrypt",
       "kms:Encrypt",
