@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)
+- **CloudTrail S3 Lifecycle (CKV_AWS_300)** - Added `abort_incomplete_multipart_upload` to CloudTrail bucket lifecycle configuration
 - **Terraform formatting** - Fixed formatting in `iam-policies.tf` and `s3-state.tf`
 
 ### Removed
