@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deploy job configuration verification** - Documentation in README Step 7 about ensuring workflow matches terragrunt.hcl
 - **Backend.tf generation in CI/CD** - Workflow generates backend configuration dynamically to match Terragrunt behavior
 - **Checkov security scanning** - Added security-scan job with SARIF output for GitHub Security tab integration
+- **Checkov skip list documentation** - Documented all 12 skipped checks with justifications in README.md
 - **Pre-commit hooks** - `.pre-commit-config.yaml` with terraform_fmt, terraform_validate, terraform_docs, tflint, checkov, terragrunt-hclfmt, detect-secrets
 - **Future Improvements section** - Documented planned enhancements: Infracost cost estimation, scheduled drift detection, CloudTrail with CloudWatch/SNS alerting
 - **TFLint configuration** - `.tflint.hcl` with AWS plugin and recommended rules
@@ -20,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)
-- **CloudTrail S3 Lifecycle (CKV_AWS_300)** - Added `abort_incomplete_multipart_upload` to CloudTrail bucket lifecycle configuration
+- **S3 Lifecycle (CKV_AWS_300)** - Added `abort_incomplete_multipart_upload` to CloudTrail and access_logs bucket lifecycle configurations
 - **Terraform formatting** - Fixed formatting in `iam-policies.tf` and `s3-state.tf`
 
 ### Removed

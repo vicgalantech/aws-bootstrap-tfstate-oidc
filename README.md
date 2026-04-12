@@ -724,12 +724,56 @@ Each role's trust policy only allows its designated branches. A `feature/*` bran
 
 | Job | Trigger | Actions |
 |---|---|---|
-| **detect-environment** | always | Maps branch → env, sets `AWS_ROLE_ARN_*` variable |
-| **validate** | push / PR | `terraform fmt`, `validate`, TFLint |
-| **security-scan** | push / PR | Checkov, tfsec |
-| **plan** | push / PR | `terragrunt plan -detailed-exitcode`, posts diff to PR |
-| **apply** | push (non-PR) | Applies if plan has changes (`exitcode == 2`) |
-| **drift-detection** | schedule (Mon 06:00) | Opens GitHub Issue on detected drift |
+| **detect-environment** | always | Maps branch → env (dev/qa/prod), outputs `AWS_ROLE_ARN_*` |
+| **validate** | always | `terraform fmt -check`, `terraform validate` |
+| **security-scan** | always | Checkov with SARIF output for GitHub Security tab |
+| **deploy** | after validate + security-scan | `terraform init`, `plan`, `apply` (non-PR only) |
+
+**Note:** This project uses a [hybrid Terragrunt/Terraform approach](docs/adr/0004-hybrid-terragrunt-terraform-cicd.md):
+- **Locally:** Developers use Terragrunt (`terragrunt plan`, `terragrunt apply`)
+- **CI/CD:** Pure Terraform with variables extracted from HCL files (bypasses wrapper compatibility issues)
+
+### Checkov Skipped Checks
+
+The following Checkov security checks are intentionally skipped in CI/CD. Each skip is documented with justification:
+
+#### False Positives (Conditional Resources)
+
+Checkov doesn't properly link resources that use `count` with their associated configurations. These resources ARE properly configured:
+
+| Check | Description | Actual Configuration |
+|-------|-------------|---------------------|
+| `CKV_AWS_18` | S3 bucket access logging | CloudTrail bucket IS the audit log (recursive logging unnecessary) |
+| `CKV_AWS_21` | S3 bucket versioning | Versioning enabled at `cloudtrail.tf:96-103` |
+| `CKV2_AWS_6` | S3 public access block | Public access block at `cloudtrail.tf:131-138` |
+| `CKV2_AWS_61` | S3 lifecycle configuration | Lifecycle config at `cloudtrail.tf:140-158` |
+
+#### KMS Key Policy False Positives
+
+In KMS key policies, `resources = ["*"]` means "this key only" (not all keys in the account). This is AWS's required syntax:
+
+| Check | Description | Justification |
+|-------|-------------|---------------|
+| `CKV_AWS_109` | IAM permissions management without constraints | KMS key policy - `*` refers to this key only |
+| `CKV_AWS_111` | IAM write access without constraints | KMS key policy - `*` refers to this key only |
+| `CKV_AWS_356` | IAM `*` resource for restrictable actions | KMS key policy - `*` refers to this key only |
+
+#### Future Improvements
+
+These checks are skipped because the features are planned but not yet implemented (see [Future Improvements](#future-improvements)):
+
+| Check | Description | Planned Feature |
+|-------|-------------|-----------------|
+| `CKV_AWS_252` | CloudTrail SNS Topic | Real-time alerting via SNS |
+| `CKV2_AWS_10` | CloudTrail CloudWatch Logs | CloudWatch metrics and alarms |
+| `CKV2_AWS_62` | S3 event notifications | Event-driven alerting |
+
+#### Not Required
+
+| Check | Description | Justification |
+|-------|-------------|---------------|
+| `CKV_AWS_144` | S3 cross-region replication | Single-region deployment, not required |
+| `CKV_AWS_145` | S3 cross-region replication (KMS) | Single-region deployment, not required |
 
 ---
 
