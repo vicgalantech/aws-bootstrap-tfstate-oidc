@@ -98,6 +98,8 @@ aws-bootstrap-tfstate-oidc/
 | **Terragrunt** | ≥ 0.67.0 | [Releases](https://github.com/gruntwork-io/terragrunt/releases) |
 | **AWS CLI** | ≥ 2.x | [Official](https://aws.amazon.com/cli/) |
 | **Git** | any | Included on most systems |
+| **pre-commit** | ≥ 3.0 | `pip install pre-commit` |
+| **TFLint** | ≥ 0.50 | [Releases](https://github.com/terraform-linters/tflint/releases) |
 
 Verify installations:
 ```bash
@@ -105,7 +107,44 @@ terraform version
 terragrunt --version
 aws --version
 git --version
+pre-commit --version
+tflint --version
 ```
+
+### Pre-commit Hooks Setup
+
+This project uses pre-commit hooks for code quality and security scanning:
+
+```bash
+# Install pre-commit hooks (run once after cloning)
+pre-commit install
+
+# Run all hooks manually
+pre-commit run --all-files
+
+# Update hooks to latest versions
+pre-commit autoupdate
+```
+
+**Hooks included:**
+- **terraform_fmt** - Auto-format Terraform files
+- **terraform_validate** - Validate Terraform syntax
+- **terraform_docs** - Auto-generate documentation
+- **terraform_tflint** - Lint Terraform code
+- **terraform_checkov** - Security scanning
+- **terragrunt-hclfmt** - Format Terragrunt files
+- **detect-secrets** - Prevent committing secrets
+
+### GitHub Secrets Required
+
+| Secret | Description | Required For |
+|---|---|---|
+| `AWS_ROLE_ARN_DEV` | IAM role ARN for dev environment | Deploy job |
+| `AWS_ROLE_ARN_QA` | IAM role ARN for QA environment | Deploy job |
+| `AWS_ROLE_ARN_PROD` | IAM role ARN for prod environment | Deploy job |
+| `INFRACOST_API_KEY` | Infracost API key for cost estimation | Cost estimation (optional) |
+
+Get your free Infracost API key at [infracost.io](https://www.infracost.io/)
 
 ### GitHub Requirements
 
@@ -627,10 +666,8 @@ git push
 2. Click the running workflow
 3. Verify all jobs pass:
    - ✅ detect-environment
-   - ✅ validate
-   - ✅ security-scan
-   - ✅ plan
-   - ✅ apply
+   - ✅ Validate & Lint
+   - ✅ Deploy
 
 Expected in `apply` step:
 ```

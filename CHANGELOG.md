@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ADR-0004** - Architecture Decision Record documenting the hybrid approach rationale
 - **Deploy job configuration verification** - Documentation in README Step 7 about ensuring workflow matches terragrunt.hcl
 - **Backend.tf generation in CI/CD** - Workflow generates backend configuration dynamically to match Terragrunt behavior
+- **Checkov security scanning** - Added security-scan job with SARIF output for GitHub Security tab integration
+- **Infracost cost estimation** - PR comments with infrastructure cost breakdown (requires `INFRACOST_API_KEY` secret)
+- **Pre-commit hooks** - `.pre-commit-config.yaml` with terraform_fmt, terraform_validate, terraform_docs, tflint, checkov, terragrunt-hclfmt, detect-secrets
+- **TFLint configuration** - `.tflint.hcl` with AWS plugin and recommended rules
+- **Terraform validate step** - Added to validate job in CI/CD workflow
 
 ### Changed
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)
