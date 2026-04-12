@@ -20,12 +20,88 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
+# ================================================
+# KMS Key Policy for Terraform State Encryption
+# ================================================
+# Explicit policy to satisfy CKV2_AWS_64 - avoids default "*" principal.
+
+data "aws_iam_policy_document" "terraform_state_kms_policy" {
+  # Allow root account full access (required for key administration)
+  statement {
+    sid    = "AllowRootAccountFullAccess"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  # Allow GitHub Actions role to use the key for state encryption/decryption
+  statement {
+    sid    = "AllowGitHubActionsRoleUsage"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.github_actions.arn]
+    }
+
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+
+    resources = ["*"]
+  }
+
+  # Allow S3 service to use the key for server-side encryption
+  statement {
+    sid    = "AllowS3ServiceUsage"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:s3:::${local.tfstate_bucket_name}"]
+    }
+  }
+}
+
 # KMS CMK — key rotation enabled, 30-day deletion window.
 # Project tag is required by the KMS IAM policy condition (aws:ResourceTag/Project).
 resource "aws_kms_key" "terraform_state" {
   description             = "KMS key for Terraform state bucket encryption - ${var.environment}"
   enable_key_rotation     = true
   deletion_window_in_days = 30
+  policy                  = data.aws_iam_policy_document.terraform_state_kms_policy.json
 
   tags = merge(var.tags, {
     Name          = "terraform-state-kms-${var.environment}"
