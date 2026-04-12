@@ -142,9 +142,6 @@ pre-commit autoupdate
 | `AWS_ROLE_ARN_DEV` | IAM role ARN for dev environment | Deploy job |
 | `AWS_ROLE_ARN_QA` | IAM role ARN for QA environment | Deploy job |
 | `AWS_ROLE_ARN_PROD` | IAM role ARN for prod environment | Deploy job |
-| `INFRACOST_API_KEY` | Infracost API key for cost estimation | Cost estimation (optional) |
-
-Get your free Infracost API key at [infracost.io](https://www.infracost.io/)
 
 ### GitHub Requirements
 
@@ -899,6 +896,82 @@ terraform {
 ### 3. Extend IAM Permissions
 
 Edit `modules/bootstrap/iam-policies.tf` to add project-specific permissions (Lambda, ECS, RDS, etc.), scoped by ARN and environment tag.
+
+---
+
+## Future Improvements
+
+The following enhancements are planned for future releases:
+
+### 1. Infracost Cost Estimation
+
+Add infrastructure cost estimation to PR comments using [Infracost](https://www.infracost.io/).
+
+```yaml
+# Planned workflow job
+cost-estimation:
+  name: Cost Estimation (Infracost)
+  if: github.event_name == 'pull_request'
+  steps:
+    - uses: infracost/actions/setup@v3
+    - run: infracost breakdown --path ./modules/bootstrap
+    - uses: infracost/actions/comment@v1
+```
+
+**Benefits:** Visibility into cost impact before merging infrastructure changes.
+
+### 2. Scheduled Drift Detection
+
+Add a scheduled workflow to detect configuration drift between Terraform state and actual AWS resources.
+
+```yaml
+# Planned workflow
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+
+jobs:
+  drift-detection:
+    steps:
+      - run: terraform plan -detailed-exitcode
+      # Exit code 2 = drift detected → notify via Slack/Email
+```
+
+**Benefits:** Proactive detection of manual changes or external modifications to infrastructure.
+
+### 3. CloudTrail with CloudWatch & SNS Alerting
+
+**Current state:** CloudTrail logs are stored in S3, but there's no real-time alerting (CKV2_AWS_10, CKV_AWS_252).
+
+**Problem:** If someone attempts to delete the state bucket or performs suspicious actions, there's no immediate notification.
+
+**Planned solution:**
+```hcl
+resource "aws_cloudtrail" "centralized_audit" {
+  # ... existing config ...
+  
+  # Add CloudWatch integration for metrics and alarms
+  cloud_watch_logs_group_arn = aws_cloudwatch_log_group.cloudtrail.arn
+  cloud_watch_logs_role_arn  = aws_iam_role.cloudtrail_cloudwatch.arn
+}
+
+resource "aws_sns_topic" "cloudtrail_alerts" {
+  name = "cloudtrail-security-alerts-${var.environment}"
+}
+
+resource "aws_cloudwatch_metric_alarm" "unauthorized_api_calls" {
+  alarm_name          = "UnauthorizedAPICalls"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0
+  alarm_actions       = [aws_sns_topic.cloudtrail_alerts.arn]
+  # ... metric filter for unauthorized calls ...
+}
+```
+
+**Benefits:**
+- Real-time Slack/Email alerts for security events
+- CloudWatch metrics for audit dashboards
+- Reactive system design (Staff Engineer level)
 
 ---
 
