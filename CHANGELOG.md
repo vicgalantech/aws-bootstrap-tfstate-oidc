@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Terraform validate step** - Added to validate job in CI/CD workflow
 - **SSM Parameter exports** - New `exports.tf` with SSM parameters for S3 bucket, KMS key, and IAM role ARNs for use by downstream projects
 - **SSM permissions** - Added SSM Parameter Store read/write permissions to GitHub Actions IAM policy
+- **ADR-0005** - Architecture Decision Record documenting SSM Parameter Store for cross-project exports
 
 ### Changed
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)

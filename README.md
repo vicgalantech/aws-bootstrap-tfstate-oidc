@@ -841,6 +841,65 @@ terragrunt run-all apply --terragrunt-working-dir live/
 
 ---
 
+## Using SSM Parameters in Other Projects
+
+This bootstrap module exports infrastructure values to AWS SSM Parameter Store, enabling downstream projects to consume them without tight coupling. See [ADR-0005](docs/adr/0005-ssm-parameter-store-exports.md) for the architectural decision.
+
+### Available Parameters
+
+| Parameter Path | Description |
+|----------------|-------------|
+| `/{env}/bootstrap/tfstate-bucket-name` | S3 bucket name for Terraform state |
+| `/{env}/bootstrap/tfstate-bucket-arn` | S3 bucket ARN |
+| `/{env}/bootstrap/tfstate-kms-key-arn` | KMS key ARN for state encryption |
+| `/{env}/bootstrap/tfstate-kms-key-alias` | KMS key alias |
+| `/{env}/bootstrap/github-actions-role-arn` | GitHub Actions IAM role ARN |
+| `/{env}/bootstrap/aws-region` | AWS region |
+
+### Usage Example
+
+**In your downstream Terraform project:**
+
+```hcl
+# Read bootstrap parameters
+data "aws_ssm_parameter" "tfstate_bucket" {
+  name = "/${var.environment}/bootstrap/tfstate-bucket-name"
+}
+
+data "aws_ssm_parameter" "tfstate_kms_key" {
+  name = "/${var.environment}/bootstrap/tfstate-kms-key-arn"
+}
+
+# Use in backend configuration (terragrunt.hcl)
+remote_state {
+  backend = "s3"
+  config = {
+    bucket         = data.aws_ssm_parameter.tfstate_bucket.value
+    key            = "my-project/terraform.tfstate"
+    region         = "eu-west-1"
+    encrypt        = true
+    kms_key_id     = data.aws_ssm_parameter.tfstate_kms_key.value
+    dynamodb_table = "terraform-locks"
+  }
+}
+```
+
+**Or with Terragrunt dependency:**
+
+```hcl
+# In your project's terragrunt.hcl
+dependency "bootstrap" {
+  config_path = "../../bootstrap"
+}
+
+inputs = {
+  state_bucket = dependency.bootstrap.outputs.tfstate_bucket_name
+  kms_key_arn  = dependency.bootstrap.outputs.tfstate_kms_key_arn
+}
+```
+
+---
+
 ## Troubleshooting
 
 ### Issue: "BucketAlreadyExists"
