@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Future Improvements section** - Documented planned enhancements: Infracost cost estimation, scheduled drift detection, CloudTrail with CloudWatch/SNS alerting
 - **TFLint configuration** - `.tflint.hcl` with AWS plugin and recommended rules
 - **Terraform validate step** - Added to validate job in CI/CD workflow
+- **SSM Parameter exports** - New `exports.tf` with SSM parameters for S3 bucket, KMS key, and IAM role ARNs for use by downstream projects
+- **SSM permissions** - Added SSM Parameter Store read/write permissions to GitHub Actions IAM policy
 
 ### Changed
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)

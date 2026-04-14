@@ -340,6 +340,44 @@ data "aws_iam_policy_document" "terraform_deployment" {
     actions   = ["sts:GetCallerIdentity"]
     resources = ["*"]
   }
+
+  # ── SSM: Parameter Store — scoped to environment-prefixed parameters ─────────
+  statement {
+    sid    = "SSMParameterRead"
+    effect = "Allow"
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+      "ssm:GetParametersByPath",
+      "ssm:DescribeParameters",
+    ]
+    resources = [
+      "arn:aws:ssm:*:${local.account_id}:parameter/${var.environment}/bootstrap/*",
+    ]
+  }
+
+  statement {
+    sid    = "SSMParameterWrite"
+    effect = "Allow"
+    actions = [
+      "ssm:PutParameter",
+      "ssm:DeleteParameter",
+      "ssm:AddTagsToResource",
+      "ssm:RemoveTagsFromResource",
+      "ssm:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:ssm:*:${local.account_id}:parameter/${var.environment}/bootstrap/*",
+    ]
+  }
+
+  # ── SSM: DescribeParameters — no resource-level support, must be * ───────────
+  statement {
+    sid       = "SSMDescribeParameters"
+    effect    = "Allow"
+    actions   = ["ssm:DescribeParameters"]
+    resources = ["*"]
+  }
 }
 
 # ================================================

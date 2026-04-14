@@ -364,7 +364,34 @@ In the JSON editor, paste:
 				"kms:ListAliases",
 				"kms:DeleteAlias",
 				"kms:GenerateDataKey",
-				"kms:Decrypt"
+				"kms:Decrypt",
+				"kms:PutKeyPolicy"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "ManageSSMParameters",
+			"Effect": "Allow",
+			"Action": [
+				"ssm:PutParameter",
+				"ssm:GetParameter",
+				"ssm:GetParameters",
+				"ssm:GetParametersByPath",
+				"ssm:DeleteParameter",
+				"ssm:DescribeParameters",
+				"ssm:AddTagsToResource",
+				"ssm:RemoveTagsFromResource",
+				"ssm:ListTagsForResource"
+			],
+			"Resource": [
+				"arn:aws:ssm:*:*:parameter/*/bootstrap/*"
+			]
+		},
+		{
+			"Sid": "SSMDescribeParameters",
+			"Effect": "Allow",
+			"Action": [
+				"ssm:DescribeParameters"
 			],
 			"Resource": "*"
 		}
