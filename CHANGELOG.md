@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **State key path** - Changed from `{env}/bootstrap/terraform.tfstate` to `bootstrap/terraform.tfstate` (environment already in bucket name)
 - **S3 Lifecycle (CKV_AWS_300)** - Added `abort_incomplete_multipart_upload` to CloudTrail and access_logs bucket lifecycle configurations
 - **Terraform formatting** - Fixed formatting in `iam-policies.tf` and `s3-state.tf`
+- **KMS Key Policy** - Removed explicit `terraform_state_kms_policy` document and `policy` attribute from `aws_kms_key.terraform_state`; using AWS default policy which grants root account full access and delegates to IAM policies
 
 ### Removed
 - **ManagedBy tags** - Removed `ManagedBy` tag from all configuration files (terragrunt.hcl, workflow, variables.tf)

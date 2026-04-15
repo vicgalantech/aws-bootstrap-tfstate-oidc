@@ -476,8 +476,6 @@ inputs = {
 }
 ```
 
-Prod has `enable_cloudtrail = true` by default.
-
 #### 2.4: Validate Configuration
 
 ```bash
@@ -518,7 +516,7 @@ Prompted: `Do you want to perform these actions?
  Terraform will perform the actions described above.
  Only 'yes' will be accepted to approve.` → **yes**
 
-Apply complete! Resources: 11 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 25 added, 0 changed, 0 destroyed.
 
 Outputs:
 github_actions_role_arn = "arn:aws:iam::111111111111:role/github-actions-terraform-dev"
@@ -784,6 +782,7 @@ In KMS key policies, `resources = ["*"]` means "this key only" (not all keys in 
 | `CKV_AWS_109` | IAM permissions management without constraints | KMS key policy - `*` refers to this key only |
 | `CKV_AWS_111` | IAM write access without constraints | KMS key policy - `*` refers to this key only |
 | `CKV_AWS_356` | IAM `*` resource for restrictable actions | KMS key policy - `*` refers to this key only |
+| `CKV2_AWS_64` | Ensure KMS key Policy is defined | Using AWS default policy - grants root account full access and delegates to IAM policies. This is secure and AWS-recommended. |
 
 #### Future Improvements
 
