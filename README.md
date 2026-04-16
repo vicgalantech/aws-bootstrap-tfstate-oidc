@@ -583,7 +583,7 @@ Terraform has been successfully initialized!
 
 ```bash
 BUCKET=$(terragrunt output -raw terraform_state_bucket)
-aws s3 ls s3://${BUCKET}/dev/bootstrap/ --profile bootstrap-dev
+aws s3 ls s3://${BUCKET}/bootstrap/ --profile bootstrap-dev
 ```
 
 Should show `terraform.tfstate`.
