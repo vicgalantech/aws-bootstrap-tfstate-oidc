@@ -783,6 +783,7 @@ In KMS key policies, `resources = ["*"]` means "this key only" (not all keys in 
 | `CKV_AWS_111` | IAM write access without constraints | KMS key policy - `*` refers to this key only |
 | `CKV_AWS_356` | IAM `*` resource for restrictable actions | KMS key policy - `*` refers to this key only |
 | `CKV2_AWS_64` | Ensure KMS key Policy is defined | Using AWS default policy - grants root account full access and delegates to IAM policies. This is secure and AWS-recommended. |
+| `CKV2_AWS_34` | AWS SSM Parameter should be Encrypted | SSM parameters contain non-sensitive infrastructure references (ARNs, bucket names, region), not secrets. Using String type for easy cross-project access. |
 
 #### Future Improvements
 
