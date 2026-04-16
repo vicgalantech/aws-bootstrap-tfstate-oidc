@@ -691,7 +691,7 @@ git push
    - ✅ Validate & Lint
    - ✅ Deploy
 
-Expected in `apply` step:
+Expected in `apply` step in Deploy job:
 ```
 Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
