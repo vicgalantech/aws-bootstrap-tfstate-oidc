@@ -1,4 +1,5 @@
 name: Terraform Deploy - Bootstrap
+run-name: "${{ github.event_name == 'create' && format('🚀 Release Created: {0}', github.ref_name) || format('Deploy: {0}', github.ref_name) }}"
 
 on:
   push:
