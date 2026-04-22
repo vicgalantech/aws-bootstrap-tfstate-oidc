@@ -1,0 +1,19 @@
+name: Setup Terragrunt
+description: Download and install a pinned version of Terragrunt into /usr/local/bin
+
+inputs:
+  version:
+    description: Terragrunt version to install (without leading v)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Terragrunt ${{ inputs.version }}
+      shell: bash
+      run: |
+        curl -sSL \
+          "https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.version }}/terragrunt_linux_amd64" \
+          -o /usr/local/bin/terragrunt
+        chmod +x /usr/local/bin/terragrunt
+        terragrunt --version

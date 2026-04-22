@@ -1,0 +1,261 @@
+name: Terraform Deploy - Bootstrap
+run-name: >-
+  ${{
+    github.event_name == 'create' && format('🚀 Release: {0}', github.ref_name) ||
+    github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) ||
+    github.event_name == 'workflow_dispatch' && format('Manual: {0} ({1})', github.event.inputs.environment, github.event.inputs.action) ||
+    github.event.head_commit.message
+  }}
+
+on:
+  push:
+    branches: [main, develop, "feature/*", "release/*"]
+    paths:
+      - 'live/**'
+      - 'modules/**'
+      - '.github/workflows/terraform-deploy.yml'
+  create:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'live/**'
+      - 'modules/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options: [dev, qa, prod]
+      action:
+        description: 'Action to perform'
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  AWS_REGION: 'eu-west-1'
+  TF_VERSION: '1.10.0'
+  TG_VERSION: '0.68.1'
+
+jobs:
+  detect-environment:
+    name: Detect Environment
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name != 'create' ||
+      (github.event_name == 'create' && github.ref_type == 'branch' && startsWith(github.ref_name, 'release/'))
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      environment: ${{ steps.detect.outputs.environment }}
+      env_upper: ${{ steps.detect.outputs.env_upper }}
+    steps:
+      - id: detect
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            ENV="prod"
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            ENV="qa"
+          else
+            ENV="dev"
+          fi
+          echo "environment=${ENV}" >> $GITHUB_OUTPUT
+          echo "env_upper=$(echo ${ENV} | tr '[:lower:]' '[:upper:]')" >> $GITHUB_OUTPUT
+
+  validate:
+    name: Validate & Lint
+    runs-on: ubuntu-latest
+    needs: detect-environment
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./modules
+        continue-on-error: true
+
+      - name: Terraform Validate
+        run: terraform init -backend=false && terraform validate
+        working-directory: ./modules/bootstrap
+
+  security-scan:
+    name: Security Scan (Checkov)
+    runs-on: ubuntu-latest
+    needs: detect-environment
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ./modules/bootstrap
+          framework: terraform
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+          soft_fail: true
+          skip_check: CKV_AWS_18,CKV_AWS_21,CKV_AWS_144,CKV_AWS_145,CKV_AWS_252,CKV2_AWS_6,CKV2_AWS_10,CKV2_AWS_61,CKV2_AWS_62,CKV_AWS_109,CKV_AWS_111,CKV_AWS_356,CKV2_AWS_64,CKV2_AWS_34  
+
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-results.sarif
+        continue-on-error: true
+
+  deploy:
+    name: Deploy (${{ needs.detect-environment.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [detect-environment, validate, security-scan]
+    timeout-minutes: 40
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ENV: ${{ needs.detect-environment.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: ./.github/actions/setup-terragrunt
+        with:
+          version: ${{ env.TG_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets[format('AWS_ROLE_ARN_{0}', needs.detect-environment.outputs.env_upper)] }}
+          role-session-name: TerraformDeploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Extract Variables from Terragrunt Config
+        id: extract_vars
+        run: |
+          # Read common.hcl values
+          AWS_REGION=$(grep 'aws_region' live/common.hcl | awk -F'"' '{print $2}')
+          COMPANY_NAME=$(grep 'company_name' live/common.hcl | awk -F'"' '{print $2}')
+          GITHUB_ORG=$(grep 'github_org' live/common.hcl | awk -F'"' '{print $2}')
+          GITHUB_REPO=$(grep 'github_repo' live/common.hcl | awk -F'"' '{print $2}')
+          BRANCH_RESTRICTION=$(grep 'enable_branch_restriction' live/common.hcl | awk '{print $3}')
+          
+          # Get AWS account ID from credentials
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          
+          echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "company_name=$COMPANY_NAME" >> $GITHUB_OUTPUT
+          echo "github_org=$GITHUB_ORG" >> $GITHUB_OUTPUT
+          echo "github_repo=$GITHUB_REPO" >> $GITHUB_OUTPUT
+          echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+          echo "branch_restriction=$BRANCH_RESTRICTION" >> $GITHUB_OUTPUT
+          
+          echo "Extracted variables for ${{ env.ENV }}:"
+          echo "  Region: $AWS_REGION"
+          echo "  Company: $COMPANY_NAME"
+          echo "  Account ID: $ACCOUNT_ID"
+
+      - name: Generate Terraform Variables File
+        run: |
+          cat > terraform.tfvars << EOF
+          aws_region   = "${{ steps.extract_vars.outputs.aws_region }}"
+          environment  = "${{ env.ENV }}"
+          company_name = "${{ steps.extract_vars.outputs.company_name }}"
+          github_org   = "${{ steps.extract_vars.outputs.github_org }}"
+          github_repo  = "${{ steps.extract_vars.outputs.github_repo }}"
+          
+          enable_branch_restriction = ${{ steps.extract_vars.outputs.branch_restriction }}
+          allowed_branches          = ["main", "develop", "release/*", "feature/*"]
+          
+          enable_cloudtrail         = false
+          cloudtrail_retention_days = 90
+          
+          tags = {
+            Environment = "${{ env.ENV }}"
+            Team        = "DevOps"
+            Project     = "bootstrap"
+          }
+          EOF
+          
+          echo "Generated terraform.tfvars:"
+          cat terraform.tfvars
+        working-directory: ./modules/bootstrap
+
+      - name: Generate Backend Configuration (Mimics Terragrunt)
+        run: |
+          # Build backend bucket name from extracted variables
+          BACKEND_BUCKET="tfstate-${{ steps.extract_vars.outputs.company_name }}-${{ env.ENV }}-${{ steps.extract_vars.outputs.account_id }}"
+          
+          echo "Generating backend.tf for S3 backend: $BACKEND_BUCKET"
+          
+          cat > backend.tf << EOF
+          terraform {
+            backend "s3" {
+              bucket  = "$BACKEND_BUCKET"
+              key     = "bootstrap/terraform.tfstate"
+              region  = "${{ steps.extract_vars.outputs.aws_region }}"
+              encrypt = true
+            }
+          }
+          EOF
+          
+          echo "Generated backend.tf:"
+          cat backend.tf
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Init (Pure Terraform)
+        run: |
+          echo "Initializing Terraform with generated backend configuration"
+          terraform init -reconfigure
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Plan
+        run: |
+          terraform plan -out=tfplan -input=false
+        working-directory: ./modules/bootstrap
+
+      - name: Terraform Apply (Pure Terraform)
+        if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || github.event.inputs.action == 'apply')
+        run: |
+          echo "=== Applying Infrastructure Changes ==="
+          terraform apply -auto-approve -input=false tfplan
+          echo "=== Apply Completed Successfully ==="
+        working-directory: ./modules/bootstrap
+
+      - name: Export Outputs
+        if: success()
+        run: terraform output -json > outputs.json
+        working-directory: ./modules/bootstrap
+
+      - name: Upload Outputs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-${{ env.ENV }}
+          path: ./modules/bootstrap/outputs.json
