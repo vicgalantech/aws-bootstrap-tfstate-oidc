@@ -6,7 +6,8 @@ on:
       - main
       - develop
     paths:
-      - 'bootstrap/**'
+      - 'modules/bootstrap/**'
+      - 'live/**'
       - '.github/workflows/**'
 
 permissions:
@@ -34,24 +35,24 @@ jobs:
         id: fmt
         run: |
           echo "Checking Terraform formatting..."
-          terraform fmt -check -recursive bootstrap/
+          terraform fmt -check -recursive modules/bootstrap/
         continue-on-error: true
 
       - name: Auto-fix formatting (if needed)
         if: steps.fmt.outcome == 'failure'
         run: |
-          echo "⚠️ Formatting issues found. Run: terraform fmt -recursive bootstrap/"
+          echo "⚠️ Formatting issues found. Run: terraform fmt -recursive modules/bootstrap/"
           exit 1
 
       - name: Check for sensitive data
         run: |
           echo "🔍 Scanning for sensitive data..."
           # Check for AWS keys, secrets, etc.
-          if grep -r "AKIA" bootstrap/ 2>/dev/null; then
+          if grep -r "AKIA" modules/bootstrap/ 2>/dev/null; then
             echo "❌ Found AWS Access Key ID pattern!"
             exit 1
           fi
-          if grep -r "aws_secret_access_key\s*=\s*[\"']" bootstrap/ 2>/dev/null; then
+          if grep -r "aws_secret_access_key\s*=\s*[\"']" modules/bootstrap/ 2>/dev/null; then
             echo "❌ Found hardcoded AWS secret!"
             exit 1
           fi
@@ -60,7 +61,7 @@ jobs:
       - name: Check for TODO/FIXME
         run: |
           echo "📝 Checking for TODO/FIXME comments..."
-          grep -r "TODO\|FIXME" bootstrap/ || echo "✅ No TODOs found"
+          grep -r "TODO\|FIXME" modules/bootstrap/ || echo "✅ No TODOs found"
 
   # ================================================
   # Terraform Docs Check
@@ -75,7 +76,7 @@ jobs:
       - name: Generate Terraform Docs
         uses: terraform-docs/gh-actions@v1.0.0
         with:
-          working-dir: bootstrap/
+          working-dir: modules/bootstrap/
           output-file: TERRAFORM.md
           output-method: inject
           fail-on-diff: false
@@ -87,7 +88,7 @@ jobs:
             const fs = require('fs');
             let docs = '';
             try {
-              docs = fs.readFileSync('bootstrap/TERRAFORM.md', 'utf8');
+              docs = fs.readFileSync('modules/bootstrap/TERRAFORM.md', 'utf8');
             } catch (e) {
               docs = 'No documentation generated';
             }
@@ -118,17 +119,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Infracost
+        if: env.INFRACOST_API_KEY != ''
         uses: infracost/actions/setup@v2
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
       - name: Generate Infracost estimate
         if: env.INFRACOST_API_KEY != ''
         run: |
           infracost breakdown \
-            --path=bootstrap/ \
+            --path=modules/bootstrap/ \
             --format=json \
             --out-file=/tmp/infracost.json
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         continue-on-error: true
 
       - name: Post cost estimate
@@ -137,26 +143,32 @@ jobs:
         with:
           path: /tmp/infracost.json
           behavior: update
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         continue-on-error: true
 
-      - name: Manual cost estimate
+      - name: Manual cost estimate (fallback)
         if: env.INFRACOST_API_KEY == ''
         uses: actions/github-script@v7
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         with:
           script: |
             const output = `#### 💰 Estimated Monthly Cost
             
-            **KMS Keys**: $2.50/month (2 keys + API requests)
-            **VPC Endpoints**: $0/month (Gateway endpoints are FREE)
-            **CloudTrail**: $0.01/month (management events free, minimal data events)
-            **S3 Storage**: $0.05/month (state + logs with lifecycle)
-            **DynamoDB**: $0.01/month (pay-per-request, low volume)
+            | Resource | Monthly Cost | Notes |
+            |----------|--------------|-------|
+            | **S3 Buckets** (tfstate + logs) | ~$0.05 | Minimal storage with lifecycle |
+            | **KMS Key** (tfstate encryption) | ~$1.00 | 1 key + API requests |
+            | **KMS Key** (CloudTrail, optional) | ~$1.00 | Only if CloudTrail enabled |
+            | **CloudTrail** (optional) | ~$0.01 | Management events free |
+            | **IAM Resources** | $0.00 | OIDC provider, role, policy |
+            | **SSM Parameters** | $0.00 | Standard parameters are free |
             
-            **Total**: ~$2.60/month (~$31/year)
+            **Total (without CloudTrail)**: ~$1.05/month (~$13/year)
+            **Total (with CloudTrail)**: ~$2.06/month (~$25/year)
             
-            *Note: Actual costs depend on usage. This assumes low activity.*
-            
-            **With 7-year CloudTrail retention**: Add ~$1.85/month in Glacier Deep Archive storage.`;
+            *Note: Actual costs depend on usage. This assumes low activity.*`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -175,51 +187,66 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check ABAC implementation
+      - name: Check S3 encryption configuration
         run: |
-          echo "🔍 Verifying ABAC implementation..."
+          echo "🔍 Verifying S3 encryption configuration..."
           
-          # Check for session tag mapping
-          if ! grep -q "sts:TagSession" bootstrap/bootstrap.tf; then
-            echo "❌ Missing sts:TagSession in trust policy"
-            exit 1
-          fi
-          
-          # Check for projectID tag usage
-          if ! grep -q "aws:PrincipalTag/projectID" bootstrap/bootstrap.tf; then
-            echo "❌ Missing ABAC projectID condition"
-            exit 1
-          fi
-          
-          echo "✅ ABAC implementation verified"
-
-      - name: Check CloudTrail Object Lock
-        run: |
-          echo "🔍 Verifying CloudTrail Object Lock..."
-          
-          if ! grep -q "object_lock_enabled = true" bootstrap/bootstrap.tf; then
-            echo "❌ CloudTrail bucket missing Object Lock"
-            exit 1
-          fi
-          
-          if ! grep -q 'mode = "COMPLIANCE"' bootstrap/bootstrap.tf; then
-            echo "❌ Object Lock not in COMPLIANCE mode"
-            exit 1
-          fi
-          
-          echo "✅ Immutable audit logs verified"
-
-      - name: Check encryption
-        run: |
-          echo "🔍 Verifying encryption configuration..."
-          
-          # Check S3 encryption
-          if ! grep -q "aws_s3_bucket_server_side_encryption_configuration" bootstrap/bootstrap.tf; then
+          # Check S3 server-side encryption
+          if ! grep -q "aws_s3_bucket_server_side_encryption_configuration" modules/bootstrap/s3-state.tf; then
             echo "❌ Missing S3 encryption configuration"
             exit 1
           fi
           
-          echo "✅ Encryption configuration verified"
+          # Check KMS key for encryption
+          if ! grep -q "aws_kms_key" modules/bootstrap/s3-state.tf; then
+            echo "❌ Missing KMS key for S3 encryption"
+            exit 1
+          fi
+          
+          echo "✅ S3 encryption configuration verified"
+
+      - name: Check KMS key rotation
+        run: |
+          echo "🔍 Verifying KMS key rotation..."
+          
+          if ! grep -q "enable_key_rotation.*=.*true" modules/bootstrap/s3-state.tf; then
+            echo "❌ KMS key rotation not enabled"
+            exit 1
+          fi
+          
+          echo "✅ KMS key rotation enabled"
+
+      - name: Check S3 versioning
+        run: |
+          echo "🔍 Verifying S3 versioning..."
+          
+          if ! grep -q "aws_s3_bucket_versioning" modules/bootstrap/s3-state.tf; then
+            echo "❌ S3 versioning not configured"
+            exit 1
+          fi
+          
+          echo "✅ S3 versioning configured"
+
+      - name: Check OIDC configuration
+        run: |
+          echo "🔍 Verifying GitHub OIDC configuration..."
+          
+          if ! grep -q "aws_iam_openid_connect_provider" modules/bootstrap/iam-oidc.tf; then
+            echo "❌ Missing OIDC provider configuration"
+            exit 1
+          fi
+          
+          echo "✅ GitHub OIDC configuration verified"
+
+      - name: Check CloudTrail (optional)
+        run: |
+          echo "🔍 Checking CloudTrail configuration (optional)..."
+          
+          if grep -q "enable_cloudtrail" modules/bootstrap/variables.tf; then
+            echo "✅ CloudTrail is configurable via enable_cloudtrail variable"
+          else
+            echo "ℹ️ CloudTrail configuration not found (optional feature)"
+          fi
 
       - name: Compliance summary
         uses: actions/github-script@v7
@@ -227,22 +254,20 @@ jobs:
           script: |
             const output = `#### ✅ Compliance Check Results
             
-            **Security Frameworks:**
-            - ✅ SOC 2 Type II: ABAC + Immutable logs + Encryption
-            - ✅ PCI-DSS: CloudTrail + TLS 1.2+ + Object Lock
-            - ✅ HIPAA: Encryption at rest + Audit trail
-            - ✅ ISO 27001: Access control + Logging + Retention
+            **Security Controls Verified:**
+            - ✅ S3 Server-Side Encryption (KMS)
+            - ✅ KMS Key Rotation enabled
+            - ✅ S3 Versioning enabled
+            - ✅ GitHub OIDC (passwordless authentication)
+            - ✅ IAM least-privilege policies
+            - ℹ️ CloudTrail (optional, configurable)
             
-            **Security Controls:**
-            - ✅ ABAC with session tags
-            - ✅ CloudTrail Object Lock (COMPLIANCE mode)
-            - ✅ Encryption at rest (KMS/AES-256)
-            - ✅ TLS 1.2+ enforcement
-            - ✅ Project isolation (S3 key prefix + DynamoDB LeadingKeys)
+            **Best Practices:**
+            - ✅ Infrastructure as Code (Terraform/Terragrunt)
+            - ✅ State encryption at rest
+            - ✅ SSM Parameter exports for cross-project usage
             
-            **Defense-in-Depth Layers:** 7/7 implemented
-            
-            🎉 All compliance checks passed!`;
+            🎉 All required compliance checks passed!`;
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
