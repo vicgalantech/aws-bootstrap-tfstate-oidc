@@ -7,33 +7,41 @@ run-name: >-
     github.event.head_commit.message
   }}
 
+# =============================================================================
+# TEMPLATE: Workflow triggers are commented out by default.
+# To enable CI/CD, uncomment the 'on:' section below and push to your repository.
+# =============================================================================
+# on:
+#   push:
+#     branches: [main, develop, "feature/*", "release/*"]
+#     paths:
+#       - 'live/**'
+#       - 'modules/**'
+#       - '.github/workflows/terraform-deploy.yml'
+#   create:
+#   pull_request:
+#     branches: [main, develop]
+#     paths:
+#       - 'live/**'
+#       - 'modules/**'
+#       - '.github/workflows/terraform-deploy.yml'
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         description: 'Environment to deploy'
+#         required: true
+#         type: choice
+#         options: [dev, qa, prod]
+#       action:
+#         description: 'Action to perform'
+#         required: true
+#         default: plan
+#         type: choice
+#         options: [plan, apply]
+
+# Temporary: Only manual trigger while template is being set up
 on:
-  push:
-    branches: [main, develop, "feature/*", "release/*"]
-    paths:
-      - 'live/**'
-      - 'modules/**'
-      - '.github/workflows/terraform-deploy.yml'
-  create:
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'live/**'
-      - 'modules/**'
-      - '.github/workflows/terraform-deploy.yml'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        type: choice
-        options: [dev, qa, prod]
-      action:
-        description: 'Action to perform'
-        required: true
-        default: plan
-        type: choice
-        options: [plan, apply]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

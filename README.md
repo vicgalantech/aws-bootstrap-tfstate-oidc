@@ -25,6 +25,7 @@ Production-ready Terragrunt implementation for AWS GitHub OIDC federation with k
   - [Step 5: Verify Setup](#step-5-verify-setup)
   - [Step 6: Configure GitHub Secrets](#step-6-configure-github-secrets)
   - [Step 7: Test GitHub Actions](#step-7-test-github-actions)
+  - [Step 8: Enable CI/CD Workflows](#step-8-enable-cicd-workflows)
 - [Architecture](#architecture)
 - [Multi-Environment Setup](#multi-environment-setup)
 - [Troubleshooting](#troubleshooting)
@@ -697,6 +698,91 @@ Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
 
 No changes because state already matches.
+
+---
+
+### Step 8: Enable CI/CD Workflows
+
+**⚠️ TEMPLATE NOTE:** The workflow triggers are commented out by default to prevent automatic runs during initial setup.
+
+#### 8.1: Enable terraform-deploy.yml
+
+Edit `.github/workflows/terraform-deploy.yml`:
+
+1. **Remove** the temporary trigger:
+   ```yaml
+   # Temporary: Only manual trigger while template is being set up
+   on:
+     workflow_dispatch:
+   ```
+
+2. **Uncomment** the full `on:` section:
+   ```yaml
+   on:
+     push:
+       branches: [main, develop, "feature/*", "release/*"]
+       paths:
+         - 'live/**'
+         - 'modules/**'
+         - '.github/workflows/terraform-deploy.yml'
+     create:
+     pull_request:
+       branches: [main, develop]
+       paths:
+         - 'live/**'
+         - 'modules/**'
+         - '.github/workflows/terraform-deploy.yml'
+     workflow_dispatch:
+       inputs:
+         environment:
+           description: 'Environment to deploy'
+           required: true
+           type: choice
+           options: [dev, qa, prod]
+         action:
+           description: 'Action to perform'
+           required: true
+           default: plan
+           type: choice
+           options: [plan, apply]
+   ```
+
+#### 8.2: Enable pr-checks.yml
+
+Edit `.github/workflows/pr-checks.yml`:
+
+1. **Remove** the temporary trigger:
+   ```yaml
+   # Temporary: Only manual trigger while template is being set up
+   on:
+     workflow_dispatch:
+   ```
+
+2. **Uncomment** the full `on:` section:
+   ```yaml
+   on:
+     pull_request:
+       branches:
+         - main
+         - develop
+       paths:
+         - 'modules/bootstrap/**'
+         - 'live/**'
+         - '.github/workflows/**'
+   ```
+
+#### 8.3: Push and Verify
+
+```bash
+git add .github/workflows/
+git commit -m "feat: enable CI/CD workflow triggers"
+git push
+```
+
+After pushing, workflows will trigger automatically on:
+- **Push** to `main`, `develop`, `feature/*`, `release/*` branches
+- **Pull requests** targeting `main` or `develop`
+- **Release branch creation** from GitHub UI
 
 ---
 
