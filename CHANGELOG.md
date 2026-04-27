@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0]
+
+### Added
+- **Template mode for workflows** - All workflow triggers commented out by default to prevent automatic runs during initial setup
+- **Step 8: Enable CI/CD Workflows** - New README section with instructions to uncomment workflow triggers after setup
+- **Dynamic run-name** - Workflow displays commit message for pushes, release number for releases, PR info for pull requests
+- **Release branch trigger** - Added `create` event to trigger workflow when `release/*` branches are created from GitHub UI
+- **Drift detection workflow** - `drift-detection.yml` with scheduled and manual triggers, creates GitHub issues on drift
+- **PR quality checks workflow** - `pr-checks.yml` with code quality, terraform-docs, cost estimation, and compliance checks
+- **Manual cost estimate fallback** - Cost estimation comment when Infracost API key not configured
+- **Terragrunt environment configs** - Added `live/dev/`, `live/qa/`, `live/prod/` bootstrap terragrunt.hcl files
+
+### Changed
+- **Workflow triggers** - Commented out with `workflow_dispatch` only for template mode
+- **Terraform version** - Updated to `1.10.0` across all workflows
+- **Working directory** - Corrected paths to `./modules/bootstrap` in all workflows
+- **AWS credentials lookup** - Changed from `vars[...]` to `secrets[...]` for role ARN
+
+### Removed
+- **ABAC implementation check** - Removed from pr-checks.yml as ABAC is no longer used
+- **Hardcoded environment options** - Replaced placeholder `xxx` with actual `dev`, `qa`, `prod` options
+
+---
+
 ## [0.2.0]
 
 ### Added
