@@ -59,10 +59,15 @@ resource "aws_iam_role" "github_actions" {
 }
 
 # ================================================
-# Policy Attachment
+# Policy Attachments
 # ================================================
 
-resource "aws_iam_role_policy_attachment" "github_actions_terraform_deployment" {
+resource "aws_iam_role_policy_attachment" "terraform_core" {
   role       = aws_iam_role.github_actions.name
-  policy_arn = aws_iam_policy.terraform_deployment.arn
+  policy_arn = aws_iam_policy.terraform_core.arn
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_iam" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.terraform_iam.arn
 }

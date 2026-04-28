@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0]
+
+### Changed
+- **Split IAM policy into 2 policies** - AWS has a 6,144 character limit per managed policy. The single `TerraformDeploymentPolicy` has been split into:
+  - `TerraformDeployment-Core-{env}` - S3, KMS, SSM, STS
+  - `TerraformDeployment-IAM-{env}` - IAM roles, policies, OIDC, CloudTrail
+- **IAMPolicyManagement resource pattern** - Updated to `TerraformDeployment-*-{env}` to allow managing multiple split policies
+
+---
+
 ## [0.3.0]
 
 ### Added
