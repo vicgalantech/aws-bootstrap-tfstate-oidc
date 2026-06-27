@@ -537,6 +537,21 @@ data "aws_iam_policy_document" "terraform_vpc" {
     resources = ["*"]
   }
 
+  # ── VPC: Network Interfaces (ENI) ───────────────────────────────────────────
+  statement {
+    sid    = "NetworkInterfaceManagement"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DeleteNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:ModifyNetworkInterfaceAttribute",
+      "ec2:AttachNetworkInterface",
+      "ec2:DetachNetworkInterface",
+    ]
+    resources = ["*"]
+  }
+
   # ── RDS: Subnet Groups ───────────────────────────────────────────────────────
   statement {
     sid    = "RDSSubnetGroupManagement"
