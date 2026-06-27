@@ -655,3 +655,338 @@ resource "aws_iam_policy" "terraform_vpc" {
     Name = "TerraformDeployment-VPC-${var.environment}"
   })
 }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# POLICY 7: RDS and Aurora Serverless
+# ══════════════════════════════════════════════════════════════════════════════
+
+data "aws_iam_policy_document" "terraform_rds" {
+
+  # ── RDS: Instance Management ────────────────────────────────────────────────
+  statement {
+    sid    = "RDSInstanceManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBInstance",
+      "rds:DeleteDBInstance",
+      "rds:ModifyDBInstance",
+      "rds:RebootDBInstance",
+      "rds:StartDBInstance",
+      "rds:StopDBInstance",
+      "rds:DescribeDBInstances",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}",
+      "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Aurora Cluster Management ──────────────────────────────────────────
+  statement {
+    sid    = "RDSClusterManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBCluster",
+      "rds:DeleteDBCluster",
+      "rds:ModifyDBCluster",
+      "rds:StartDBCluster",
+      "rds:StopDBCluster",
+      "rds:DescribeDBClusters",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:cluster:*-${var.environment}",
+      "arn:aws:rds:*:${local.account_id}:cluster:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Aurora Cluster Instance Management ─────────────────────────────────
+  statement {
+    sid    = "RDSClusterInstanceManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBInstance",
+      "rds:DeleteDBInstance",
+      "rds:ModifyDBInstance",
+      "rds:DescribeDBInstances",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}-instance-*",
+    ]
+  }
+
+  # ── RDS: Parameter Groups ───────────────────────────────────────────────────
+  statement {
+    sid    = "RDSParameterGroupManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBParameterGroup",
+      "rds:DeleteDBParameterGroup",
+      "rds:ModifyDBParameterGroup",
+      "rds:DescribeDBParameterGroups",
+      "rds:DescribeDBParameters",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:pg:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Cluster Parameter Groups ───────────────────────────────────────────
+  statement {
+    sid    = "RDSClusterParameterGroupManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBClusterParameterGroup",
+      "rds:DeleteDBClusterParameterGroup",
+      "rds:ModifyDBClusterParameterGroup",
+      "rds:DescribeDBClusterParameterGroups",
+      "rds:DescribeDBClusterParameters",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:cluster-pg:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Option Groups ──────────────────────────────────────────────────────
+  statement {
+    sid    = "RDSOptionGroupManagement"
+    effect = "Allow"
+    actions = [
+      "rds:CreateOptionGroup",
+      "rds:DeleteOptionGroup",
+      "rds:ModifyOptionGroup",
+      "rds:DescribeOptionGroups",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:og:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Subnet Groups (extended from VPC policy) ───────────────────────────
+  statement {
+    sid    = "RDSSubnetGroupManagementExtended"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBSubnetGroup",
+      "rds:DeleteDBSubnetGroup",
+      "rds:ModifyDBSubnetGroup",
+      "rds:DescribeDBSubnetGroups",
+      "rds:AddTagsToResource",
+      "rds:RemoveTagsFromResource",
+      "rds:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${local.account_id}:subgrp:*-${var.environment}-*",
+    ]
+  }
+
+  # ── RDS: Describe operations (no resource-level support) ───────────────────
+  statement {
+    sid    = "RDSDescribeAll"
+    effect = "Allow"
+    actions = [
+      "rds:DescribeDBInstances",
+      "rds:DescribeDBClusters",
+      "rds:DescribeDBSubnetGroups",
+      "rds:DescribeDBParameterGroups",
+      "rds:DescribeDBClusterParameterGroups",
+      "rds:DescribeOptionGroups",
+      "rds:DescribeDBEngineVersions",
+      "rds:DescribeOrderableDBInstanceOptions",
+      "rds:DescribeDBClusterEndpoints",
+    ]
+    resources = ["*"]
+  }
+
+  # ── Secrets Manager: RDS Credentials ────────────────────────────────────────
+  statement {
+    sid    = "SecretsManagerRDSCredentials"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:CreateSecret",
+      "secretsmanager:DeleteSecret",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:UpdateSecret",
+      "secretsmanager:TagResource",
+      "secretsmanager:UntagResource",
+      "secretsmanager:GetResourcePolicy",
+      "secretsmanager:PutResourcePolicy",
+      "secretsmanager:DeleteResourcePolicy",
+    ]
+    resources = [
+      "arn:aws:secretsmanager:*:${local.account_id}:secret:*-${var.environment}-master-password-*",
+    ]
+  }
+
+  # ── Secrets Manager: Random suffix lookup ───────────────────────────────────
+  statement {
+    sid    = "SecretsManagerDescribe"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:ListSecrets",
+    ]
+    resources = ["*"]
+  }
+
+  # ── IAM: RDS Enhanced Monitoring Role ───────────────────────────────────────
+  statement {
+    sid    = "IAMRDSMonitoringRoleManagement"
+    effect = "Allow"
+    actions = [
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:GetRole",
+      "iam:UpdateRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:PutRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:GetRolePolicy",
+      "iam:ListRolePolicies",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
+    ]
+    resources = [
+      "arn:aws:iam::${local.account_id}:role/*-${var.environment}-rds-monitoring-role",
+    ]
+  }
+
+  # ── IAM: PassRole for RDS Enhanced Monitoring ───────────────────────────────
+  statement {
+    sid     = "IAMPassRoleToRDSMonitoring"
+    effect  = "Allow"
+    actions = ["iam:PassRole"]
+    resources = [
+      "arn:aws:iam::${local.account_id}:role/*-${var.environment}-rds-monitoring-role",
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["monitoring.rds.amazonaws.com"]
+    }
+  }
+
+  # ── CloudWatch: RDS Alarms ──────────────────────────────────────────────────
+  statement {
+    sid    = "CloudWatchRDSAlarms"
+    effect = "Allow"
+    actions = [
+      "cloudwatch:PutMetricAlarm",
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:DescribeAlarms",
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+      "cloudwatch:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:cloudwatch:*:${local.account_id}:alarm:*-${var.environment}-*",
+    ]
+  }
+
+  # ── CloudWatch Logs: RDS Logs ───────────────────────────────────────────────
+  statement {
+    sid    = "CloudWatchLogsRDS"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:DeleteLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:DeleteRetentionPolicy",
+      "logs:DescribeLogGroups",
+      "logs:TagLogGroup",
+      "logs:UntagLogGroup",
+      "logs:ListTagsLogGroup",
+      "logs:TagResource",
+      "logs:UntagResource",
+      "logs:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:logs:*:${local.account_id}:log-group:/aws/rds/*",
+      "arn:aws:logs:*:${local.account_id}:log-group:/aws/rds/*:*",
+    ]
+  }
+
+  # ── EC2: Security Groups for RDS ────────────────────────────────────────────
+  statement {
+    sid    = "EC2SecurityGroupsForRDS"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSecurityGroupRules",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:CreateTags",
+      "ec2:DeleteTags",
+      "ec2:ModifySecurityGroupRules",
+    ]
+    resources = ["*"]
+  }
+
+  # ── EC2: VPC Read for RDS ───────────────────────────────────────────────────
+  statement {
+    sid    = "EC2VPCReadForRDS"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeAvailabilityZones",
+    ]
+    resources = ["*"]
+  }
+
+  # ── KMS: RDS Encryption ─────────────────────────────────────────────────────
+  statement {
+    sid    = "KMSForRDSEncryption"
+    effect = "Allow"
+    actions = [
+      "kms:CreateGrant",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+      values   = ["rds.*.amazonaws.com", "secretsmanager.*.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "terraform_rds" {
+  name        = "TerraformDeployment-RDS-${var.environment}"
+  description = "RDS and Aurora Serverless policy for ${var.environment}"
+  policy      = data.aws_iam_policy_document.terraform_rds.json
+
+  tags = merge(var.tags, {
+    Name = "TerraformDeployment-RDS-${var.environment}"
+  })
+}

@@ -76,3 +76,8 @@ resource "aws_iam_role_policy_attachment" "terraform_vpc" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.terraform_vpc.arn
 }
+
+resource "aws_iam_role_policy_attachment" "terraform_rds" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.terraform_rds.arn
+}
