@@ -622,6 +622,124 @@ data "aws_iam_policy_document" "terraform_vpc" {
     }
   }
 
+  # ── EC2: Bastion AMI Lookup ──────────────────────────────────────────────────
+  statement {
+    sid    = "EC2DescribeImages"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeImages",
+      "ec2:DescribeImageAttribute",
+    ]
+    resources = ["*"]
+  }
+
+  # ── EC2: Bastion Instance Management ─────────────────────────────────────────
+  statement {
+    sid    = "EC2BastionInstanceManagement"
+    effect = "Allow"
+    actions = [
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
+      "ec2:StartInstances",
+      "ec2:StopInstances",
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeInstanceAttribute",
+      "ec2:ModifyInstanceAttribute",
+      "ec2:MonitorInstances",
+      "ec2:UnmonitorInstances",
+      "ec2:CreateTags",
+      "ec2:DeleteTags",
+    ]
+    resources = [
+      "arn:aws:ec2:*:${local.account_id}:instance/*",
+      "arn:aws:ec2:*:${local.account_id}:volume/*",
+      "arn:aws:ec2:*:${local.account_id}:network-interface/*",
+      "arn:aws:ec2:*:${local.account_id}:security-group/*",
+      "arn:aws:ec2:*:${local.account_id}:subnet/*",
+      "arn:aws:ec2:*::image/*",
+    ]
+  }
+
+  # ── EC2: Bastion Volume Management ───────────────────────────────────────────
+  statement {
+    sid    = "EC2BastionVolumeManagement"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateVolume",
+      "ec2:DeleteVolume",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeVolumeAttribute",
+      "ec2:ModifyVolumeAttribute",
+      "ec2:AttachVolume",
+      "ec2:DetachVolume",
+    ]
+    resources = [
+      "arn:aws:ec2:*:${local.account_id}:volume/*",
+      "arn:aws:ec2:*:${local.account_id}:instance/*",
+    ]
+  }
+
+  # ── IAM: Bastion SSM Role Management ─────────────────────────────────────────
+  statement {
+    sid    = "IAMBastionRoleManagement"
+    effect = "Allow"
+    actions = [
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:GetRole",
+      "iam:UpdateRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:PutRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:GetRolePolicy",
+      "iam:ListRolePolicies",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
+    ]
+    resources = [
+      "arn:aws:iam::${local.account_id}:role/*-${var.environment}-bastion-ssm-role",
+    ]
+  }
+
+  # ── IAM: Bastion Instance Profile Management ─────────────────────────────────
+  statement {
+    sid    = "IAMBastionInstanceProfileManagement"
+    effect = "Allow"
+    actions = [
+      "iam:CreateInstanceProfile",
+      "iam:DeleteInstanceProfile",
+      "iam:GetInstanceProfile",
+      "iam:TagInstanceProfile",
+      "iam:UntagInstanceProfile",
+      "iam:AddRoleToInstanceProfile",
+      "iam:RemoveRoleFromInstanceProfile",
+      "iam:ListInstanceProfiles",
+    ]
+    resources = [
+      "arn:aws:iam::${local.account_id}:instance-profile/*-${var.environment}-bastion-profile",
+    ]
+  }
+
+  # ── IAM: PassRole for Bastion ────────────────────────────────────────────────
+  statement {
+    sid     = "IAMPassRoleToBastion"
+    effect  = "Allow"
+    actions = ["iam:PassRole"]
+    resources = [
+      "arn:aws:iam::${local.account_id}:role/*-${var.environment}-bastion-ssm-role",
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ec2.amazonaws.com"]
+    }
+  }
+
   # ── CloudWatch Logs: VPC Flow Logs ───────────────────────────────────────────
   statement {
     sid    = "CloudWatchLogsVPCFlowLogs"

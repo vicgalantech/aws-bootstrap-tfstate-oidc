@@ -1113,6 +1113,23 @@ terraform {
 
 Edit `modules/bootstrap/iam-policies.tf` to add project-specific permissions (Lambda, ECS, RDS, etc.), scoped by ARN and environment tag.
 
+**Current Permissions Included:**
+- ✅ **Core:** S3, KMS, IAM, SSM Parameter Store, CloudWatch Logs
+- ✅ **Lambda:** Function deployment, VPC configuration, event sources
+- ✅ **Step Functions:** State machine management
+- ✅ **Budget:** Cost management and alerts
+- ✅ **DynamoDB:** Table and stream management
+- ✅ **VPC:** Network infrastructure (subnets, route tables, NAT, endpoints, flow logs)
+- ✅ **RDS/Aurora:** Database instances, clusters, serverless v2
+- ✅ **EC2 Bastion:** AMI lookup, instance management, IAM roles for SSM Session Manager
+
+**Bastion Permissions (Added):**
+- `ec2:DescribeImages` - AMI lookup for Amazon Linux 2023
+- `ec2:RunInstances`, `ec2:TerminateInstances` - Instance lifecycle
+- `iam:CreateRole`, `iam:CreateInstanceProfile` - SSM role creation
+- `iam:PassRole` to `ec2.amazonaws.com` - Instance profile attachment
+- `ec2:CreateVolume`, `ec2:AttachVolume` - EBS volume management
+
 ---
 
 ## Future Improvements
