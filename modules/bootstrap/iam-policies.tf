@@ -670,8 +670,12 @@ data "aws_iam_policy_document" "terraform_bastion" {
       "ec2:DescribeImages",
       "ec2:DescribeImageAttribute",
       "ec2:DescribeInstances",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeInstanceAttribute",
       "ec2:DescribeAddresses",
       "ec2:DescribeAddressesAttribute",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeVolumeAttribute",
     ]
     resources = ["*"]
   }
@@ -685,8 +689,6 @@ data "aws_iam_policy_document" "terraform_bastion" {
       "ec2:TerminateInstances",
       "ec2:StartInstances",
       "ec2:StopInstances",
-      "ec2:DescribeInstanceTypes",
-      "ec2:DescribeInstanceAttribute",
       "ec2:ModifyInstanceAttribute",
       "ec2:MonitorInstances",
       "ec2:UnmonitorInstances",
@@ -710,8 +712,6 @@ data "aws_iam_policy_document" "terraform_bastion" {
     actions = [
       "ec2:CreateVolume",
       "ec2:DeleteVolume",
-      "ec2:DescribeVolumes",
-      "ec2:DescribeVolumeAttribute",
       "ec2:ModifyVolumeAttribute",
       "ec2:AttachVolume",
       "ec2:DetachVolume",
