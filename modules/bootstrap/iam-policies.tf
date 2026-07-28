@@ -662,13 +662,16 @@ resource "aws_iam_policy" "terraform_vpc" {
 
 data "aws_iam_policy_document" "terraform_bastion" {
 
-  # ── EC2: Bastion AMI Lookup ──────────────────────────────────────────────────
+  # ── EC2: Bastion and NAT Gateway Describe Operations ─────────────────────────
   statement {
-    sid    = "EC2DescribeImages"
+    sid    = "EC2DescribeOperations"
     effect = "Allow"
     actions = [
       "ec2:DescribeImages",
       "ec2:DescribeImageAttribute",
+      "ec2:DescribeInstances",
+      "ec2:DescribeAddresses",
+      "ec2:DescribeAddressesAttribute",
     ]
     resources = ["*"]
   }
@@ -682,7 +685,6 @@ data "aws_iam_policy_document" "terraform_bastion" {
       "ec2:TerminateInstances",
       "ec2:StartInstances",
       "ec2:StopInstances",
-      "ec2:DescribeInstances",
       "ec2:DescribeInstanceTypes",
       "ec2:DescribeInstanceAttribute",
       "ec2:ModifyInstanceAttribute",
