@@ -622,6 +622,46 @@ data "aws_iam_policy_document" "terraform_vpc" {
     }
   }
 
+  # ── CloudWatch Logs: VPC Flow Logs ───────────────────────────────────────────
+  statement {
+    sid    = "CloudWatchLogsVPCFlowLogs"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:DeleteLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:DeleteRetentionPolicy",
+      "logs:DescribeLogGroups",
+      "logs:TagLogGroup",
+      "logs:UntagLogGroup",
+      "logs:ListTagsLogGroup",
+      "logs:TagResource",
+      "logs:UntagResource",
+      "logs:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:logs:*:${local.account_id}:log-group:/aws/vpc/*",
+      "arn:aws:logs:*:${local.account_id}:log-group:/aws/vpc/*:*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "terraform_vpc" {
+  name        = "TerraformDeployment-VPC-${var.environment}"
+  description = "VPC and Networking policy for ${var.environment}"
+  policy      = data.aws_iam_policy_document.terraform_vpc.json
+
+  tags = merge(var.tags, {
+    Name = "TerraformDeployment-VPC-${var.environment}"
+  })
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# POLICY 7: EC2 Bastion (SSM Session Manager)
+# ══════════════════════════════════════════════════════════════════════════════
+
+data "aws_iam_policy_document" "terraform_bastion" {
+
   # ── EC2: Bastion AMI Lookup ──────────────────────────────────────────────────
   statement {
     sid    = "EC2DescribeImages"
@@ -739,43 +779,20 @@ data "aws_iam_policy_document" "terraform_vpc" {
       values   = ["ec2.amazonaws.com"]
     }
   }
-
-  # ── CloudWatch Logs: VPC Flow Logs ───────────────────────────────────────────
-  statement {
-    sid    = "CloudWatchLogsVPCFlowLogs"
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:DeleteLogGroup",
-      "logs:PutRetentionPolicy",
-      "logs:DeleteRetentionPolicy",
-      "logs:DescribeLogGroups",
-      "logs:TagLogGroup",
-      "logs:UntagLogGroup",
-      "logs:ListTagsLogGroup",
-      "logs:TagResource",
-      "logs:UntagResource",
-      "logs:ListTagsForResource",
-    ]
-    resources = [
-      "arn:aws:logs:*:${local.account_id}:log-group:/aws/vpc/*",
-      "arn:aws:logs:*:${local.account_id}:log-group:/aws/vpc/*:*",
-    ]
-  }
 }
 
-resource "aws_iam_policy" "terraform_vpc" {
-  name        = "TerraformDeployment-VPC-${var.environment}"
-  description = "VPC and Networking policy for ${var.environment}"
-  policy      = data.aws_iam_policy_document.terraform_vpc.json
+resource "aws_iam_policy" "terraform_bastion" {
+  name        = "TerraformDeployment-Bastion-${var.environment}"
+  description = "EC2 Bastion (SSM Session Manager) policy for ${var.environment}"
+  policy      = data.aws_iam_policy_document.terraform_bastion.json
 
   tags = merge(var.tags, {
-    Name = "TerraformDeployment-VPC-${var.environment}"
+    Name = "TerraformDeployment-Bastion-${var.environment}"
   })
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# POLICY 7: RDS and Aurora Serverless
+# POLICY 8: RDS and Aurora Serverless
 # ══════════════════════════════════════════════════════════════════════════════
 
 data "aws_iam_policy_document" "terraform_rds" {
