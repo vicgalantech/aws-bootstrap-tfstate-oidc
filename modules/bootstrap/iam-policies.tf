@@ -672,6 +672,7 @@ data "aws_iam_policy_document" "terraform_bastion" {
       "ec2:DescribeInstances",
       "ec2:DescribeInstanceTypes",
       "ec2:DescribeInstanceAttribute",
+      "ec2:DescribeInstanceCreditSpecifications",
       "ec2:DescribeAddresses",
       "ec2:DescribeAddressesAttribute",
       "ec2:DescribeVolumes",
