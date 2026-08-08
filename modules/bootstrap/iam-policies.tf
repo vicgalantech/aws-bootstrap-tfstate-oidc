@@ -819,6 +819,8 @@ data "aws_iam_policy_document" "terraform_rds" {
     resources = [
       "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}",
       "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}-*",
+      "arn:aws:rds:*:${local.account_id}:cluster:*-${var.environment}",
+      "arn:aws:rds:*:${local.account_id}:cluster:*-${var.environment}-*",
     ]
   }
 
@@ -858,6 +860,7 @@ data "aws_iam_policy_document" "terraform_rds" {
     ]
     resources = [
       "arn:aws:rds:*:${local.account_id}:db:*-${var.environment}-instance-*",
+      "arn:aws:rds:*:${local.account_id}:cluster:*-${var.environment}",
     ]
   }
 
