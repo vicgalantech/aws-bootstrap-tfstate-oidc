@@ -974,7 +974,7 @@ data "aws_iam_policy_document" "terraform_rds" {
       "secretsmanager:DeleteResourcePolicy",
     ]
     resources = [
-      "arn:aws:secretsmanager:*:${local.account_id}:secret:*-${var.environment}-master-password-*",
+      "arn:aws:secretsmanager:*:${local.account_id}:secret:*-${var.environment}-*",
     ]
   }
 
